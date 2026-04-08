@@ -1,14 +1,14 @@
-# CanTides — Home Assistant Integration Design
+# CHSTides — Home Assistant Integration Design
 
-**Date:** 2026-04-07  
-**Status:** Approved  
+**Date:** 2026-04-07
+**Status:** Approved
 **API:** Canadian Hydrographic Service (CHS) — [api-sine.dfo-mpo.gc.ca](https://api-sine.dfo-mpo.gc.ca)
 
 ---
 
 ## Overview
 
-CanTides is a Home Assistant custom integration that exposes Canadian tide station data via the CHS Integrated Water Level System API. It is distributed via HACS, with a path to inclusion in the official HA integration list as it matures.
+CHSTides is a Home Assistant custom integration that exposes Canadian tide station data via the CHS Integrated Water Level System API. It is distributed via HACS, with a path to inclusion in the official HA integration list as it matures.
 
 It provides:
 - Live observed water level height and derived tide phase (rising/falling/high/low)
@@ -19,7 +19,7 @@ It provides:
 ## Project Structure
 
 ```
-cantides/
+chstides/
 ├── CLAUDE.md
 ├── README.md
 ├── Makefile                         # dev, test, lint, format targets
@@ -28,7 +28,7 @@ cantides/
 │   ├── extensions.json
 │   └── launch.json
 ├── custom_components/
-│   └── cantides/
+│   └── chstides/
 │       ├── __init__.py              # Integration setup/unload
 │       ├── manifest.json            # HACS metadata
 │       ├── config_flow.py           # UI config flow + options flow
@@ -71,7 +71,7 @@ cantides/
 
 ## CHS API Client (`api.py`)
 
-**Base URL:** `https://api-sine.dfo-mpo.gc.ca`  
+**Base URL:** `https://api-sine.dfo-mpo.gc.ca`
 **HTTP client:** `aiohttp.ClientSession` (injected, not owned by the client)
 
 ### Data Models (dataclasses)
@@ -113,13 +113,13 @@ class CHSApiClient:
 
 ### Pure Helper Functions
 
-- `find_nearest_station(stations: list[Station], lat: float, lon: float) -> Station`  
+- `find_nearest_station(stations: list[Station], lat: float, lon: float) -> Station`
   Uses Haversine distance. No external library.
 
-- `derive_tide_phase(recent_points: list[ObservedData]) -> TidePhase`  
+- `derive_tide_phase(recent_points: list[ObservedData]) -> TidePhase`
   Compares the last two observed heights. Returns `RISING | FALLING | HIGH | LOW`.
 
-- `find_highs_lows(points: list[PredictionPoint]) -> list[PredictionPoint]`  
+- `find_highs_lows(points: list[PredictionPoint]) -> list[PredictionPoint]`
   Identifies local minima/maxima in the prediction time series, tagging each as `HIGH` or `LOW`.
 
 ### Error Handling
@@ -260,7 +260,7 @@ Step 2 is also exposed as an **Options flow**, allowing users to change interval
 
 ## HACS & Distribution
 
-- `manifest.json` includes `"iot_class": "cloud_polling"`, `"version"`, `"domain": "cantides"`, `"requirements": []` (no extra pip deps)
+- `manifest.json` includes `"iot_class": "cloud_polling"`, `"version"`, `"domain": "chstides"`, `"requirements": []` (no extra pip deps)
 - `hacs.json` at repo root for HACS discovery
 - Initial release targets HACS custom repository; future goal is HA core integration list once the integration meets quality scale requirements
 

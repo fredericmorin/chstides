@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Grep",
+      "Glob",
+      "WebFetch(domain:api-sine.dfo-mpo.gc.ca)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(ls *)",
+      "Bash(make *)",
+      "Bash(uv *)",
+      "Bash(ty *)",
+      "Bash(ruff *)"
+    ],
+    "deny": [
+      "Bash(rm *)",
+      "Bash(sudo *)",
+      "Bash(chown *)",
+      "Bash(chmod *777*)"
+    ]
+  }
+}
