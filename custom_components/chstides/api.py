@@ -44,6 +44,31 @@ class _SessionCHSIWLS(CHS_IWLS):
         return data
 
 
+async def get_observed_water_level(
+    session: aiohttp.ClientSession, station_id: str
+) -> list[ObservedData]:
+    """Return the last 30 minutes of observed water level readings."""
+    from .const import TIME_SERIES_OBSERVED
+
+    now = datetime.now(UTC).replace(tzinfo=None)
+    from_dt = now - timedelta(minutes=30)
+    chs = _SessionCHSIWLS(session, station_id=station_id)
+    data = await chs.station_data(**{
+        "time-series-code": TIME_SERIES_OBSERVED,
+        "from": from_dt,
+        "to": now,
+    })
+    return [
+        ObservedData(
+            station_id=station_id,
+            timestamp=datetime.fromisoformat(d["eventDate"].replace("Z", "+00:00")),
+            height_m=float(d["value"]),
+            time_series_code=TIME_SERIES_OBSERVED,
+        )
+        for d in data
+    ]
+
+
 async def get_stations(
     session: aiohttp.ClientSession, code: str | None = None
 ) -> list[Station]:
