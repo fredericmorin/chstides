@@ -6,7 +6,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import CHSApiClient
 from .const import (
     CONF_OBSERVED_INTERVAL,
     CONF_PREDICTION_DAYS,
@@ -25,7 +24,6 @@ PLATFORMS: list[str] = ["sensor"]
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up CHSTides from a config entry."""
     session = async_get_clientsession(hass)
-    client = CHSApiClient(session)
     station_id = entry.data[CONF_STATION_ID]
 
     def _opt(key: str, default: int) -> int:
@@ -33,13 +31,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     observed_coord = ObservedDataCoordinator(
         hass,
-        client,
+        session,
         station_id,
         _opt(CONF_OBSERVED_INTERVAL, DEFAULT_OBSERVED_INTERVAL_MINUTES),
     )
     prediction_coord = PredictionCoordinator(
         hass,
-        client,
+        session,
         station_id,
         _opt(CONF_PREDICTION_DAYS, DEFAULT_PREDICTION_DAYS),
         _opt(CONF_PREDICTION_INTERVAL, DEFAULT_PREDICTION_INTERVAL_HOURS),
@@ -51,7 +49,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         "observed": observed_coord,
         "predictions": prediction_coord,
-        "client": client,
     }
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

@@ -15,11 +15,12 @@ MOCK_STATION = Station(
 
 @pytest.fixture(autouse=True)
 def mock_client_setup():
-    with patch("custom_components.chstides.config_flow.CHSApiClient") as mock_cls:
-        client = AsyncMock()
-        mock_cls.return_value = client
-        client.get_stations.return_value = [MOCK_STATION]
-        yield client
+    with patch(
+        "custom_components.chstides.config_flow.get_stations",
+        new_callable=AsyncMock,
+    ) as mock_get_stations:
+        mock_get_stations.return_value = [MOCK_STATION]
+        yield mock_get_stations
 
 
 @pytest.mark.asyncio
@@ -50,7 +51,7 @@ async def test_step_station_with_valid_code_proceeds(
 async def test_step_station_with_invalid_code_shows_error(
     hass: HomeAssistant, mock_client_setup
 ):
-    mock_client_setup.get_stations.return_value = []
+    mock_client_setup.return_value = []
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )

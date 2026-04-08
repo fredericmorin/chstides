@@ -16,7 +16,7 @@ from homeassistant.helpers.selector import (
     TextSelector,
 )
 
-from .api import CHSApiClient, CHSApiError, find_nearest_station
+from .api import CHSApiError, find_nearest_station, get_stations
 from .const import (
     CONF_OBSERVED_INTERVAL,
     CONF_PREDICTION_DAYS,
@@ -71,12 +71,11 @@ class CHSTidesConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_station(self, user_input: dict[str, Any] | None = None) -> Any:
         errors: dict[str, str] = {}
         session = async_get_clientsession(self.hass)
-        client = CHSApiClient(session)
 
         if user_input is not None:
             if user_input.get("auto_detect"):
                 try:
-                    stations = await client.get_stations()
+                    stations = await get_stations(session)
                     nearest = find_nearest_station(
                         stations,
                         self.hass.config.latitude,
@@ -107,7 +106,7 @@ class CHSTidesConfigFlow(ConfigFlow, domain=DOMAIN):
                     errors["station_code"] = "station_not_found"
                 else:
                     try:
-                        stations = await client.get_stations(code=code)
+                        stations = await get_stations(session, code=code)
                         if not stations:
                             errors["station_code"] = "station_not_found"
                         else:

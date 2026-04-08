@@ -5,16 +5,18 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta
 
+import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import (
-    CHSApiClient,
     CHSApiError,
     ObservedData,
     PredictionPoint,
     TidePhase,
     derive_tide_phase,
+    get_observed_water_level,
+    get_predictions,
 )
 from .const import DOMAIN
 
@@ -27,7 +29,7 @@ class ObservedDataCoordinator(DataUpdateCoordinator):
     def __init__(
         self,
         hass: HomeAssistant,
-        client: CHSApiClient,
+        session: aiohttp.ClientSession,
         station_id: str,
         interval_minutes: int,
     ) -> None:
@@ -37,14 +39,14 @@ class ObservedDataCoordinator(DataUpdateCoordinator):
             name=f"{DOMAIN}_observed_{station_id}",
             update_interval=timedelta(minutes=interval_minutes),
         )
-        self._client = client
+        self._session = session
         self._station_id = station_id
         self.latest: ObservedData | None = None
         self.phase: str = TidePhase.RISING
 
     async def _async_update_data(self) -> dict:
         try:
-            points = await self._client.get_observed_water_level(self._station_id)
+            points = await get_observed_water_level(self._session, self._station_id)
         except CHSApiError as err:
             raise UpdateFailed(f"CHS API error: {err}") from err
         if not points:
@@ -60,7 +62,7 @@ class PredictionCoordinator(DataUpdateCoordinator):
     def __init__(
         self,
         hass: HomeAssistant,
-        client: CHSApiClient,
+        session: aiohttp.ClientSession,
         station_id: str,
         days: int,
         interval_hours: int,
@@ -71,7 +73,7 @@ class PredictionCoordinator(DataUpdateCoordinator):
             name=f"{DOMAIN}_predictions_{station_id}",
             update_interval=timedelta(hours=interval_hours),
         )
-        self._client = client
+        self._session = session
         self._station_id = station_id
         self._days = days
         self.forecast: list[PredictionPoint] = []
@@ -80,7 +82,7 @@ class PredictionCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict:
         try:
-            points = await self._client.get_predictions(self._station_id, self._days)
+            points = await get_predictions(self._session, self._station_id, self._days)
         except CHSApiError as err:
             _LOGGER.warning("Failed to fetch predictions, keeping stale data: %s", err)
             return {
