@@ -72,8 +72,10 @@ class ObservedDataCoordinator(DataUpdateCoordinator):
                 self._station_id,
                 err,
             )
+            self.latest = None
             return {"latest": None, "phase": self.phase}
         if not points:
+            self.latest = None
             return {"latest": None, "phase": self.phase}
         self.latest = points[-1]
         self.phase = derive_tide_phase(points)
