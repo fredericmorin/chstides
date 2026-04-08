@@ -132,7 +132,8 @@ async def get_observed_water_level(
 async def get_predicted_water_level(
     session: aiohttp.ClientSession, station_id: str
 ) -> list[ObservedData]:
-    """Return last 30 min of wlp predictions up to now.
+    """
+    Return last 30 min of wlp predictions up to now.
 
     Returns ObservedData with source='estimated'.
     """
@@ -152,9 +153,7 @@ async def get_predicted_water_level(
     return [
         ObservedData(
             station_id=station_id,
-            timestamp=datetime.fromisoformat(
-                d["eventDate"].replace("Z", "+00:00")
-            ),
+            timestamp=datetime.fromisoformat(d["eventDate"].replace("Z", "+00:00")),
             height_m=float(d["value"]),
             time_series_code=TIME_SERIES_PREDICTED_CONTINUOUS,
             source="estimated",

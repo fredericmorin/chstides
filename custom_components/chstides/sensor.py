@@ -43,7 +43,9 @@ async def async_setup_entry(
         [
             WaterLevelSensor(observed, station_name, station_code, station_id, eid),
             TidePhaseSensor(observed, station_name, station_code, station_id, eid),
-            WaterLevelSourceSensor(observed, station_name, station_code, station_id, eid),
+            WaterLevelSourceSensor(
+                observed, station_name, station_code, station_id, eid
+            ),
             NextHighTideSensor(
                 predictions, station_name, station_code, station_id, eid
             ),

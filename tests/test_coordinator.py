@@ -125,12 +125,15 @@ async def test_observed_coordinator_falls_back_to_wlp_on_404(hass, mock_session,
         ObservedData("s1", now, 1.8, "wlp", source="estimated"),
         ObservedData("s1", now, 1.85, "wlp", source="estimated"),
     ]
-    with patch(
-        "custom_components.chstides.coordinator.get_observed_water_level",
-        new=AsyncMock(side_effect=CHSApiError("not found", 404)),
-    ), patch(
-        "custom_components.chstides.coordinator.get_predicted_water_level",
-        new=AsyncMock(return_value=predicted_points),
+    with (
+        patch(
+            "custom_components.chstides.coordinator.get_observed_water_level",
+            new=AsyncMock(side_effect=CHSApiError("not found", 404)),
+        ),
+        patch(
+            "custom_components.chstides.coordinator.get_predicted_water_level",
+            new=AsyncMock(return_value=predicted_points),
+        ),
     ):
         coord = ObservedDataCoordinator(hass, mock_session, "s1", 5)
         await coord.async_refresh()
@@ -144,12 +147,15 @@ async def test_observed_coordinator_falls_back_to_wlp_on_404(hass, mock_session,
 async def test_observed_coordinator_returns_none_when_wlp_also_fails(
     hass, mock_session
 ):
-    with patch(
-        "custom_components.chstides.coordinator.get_observed_water_level",
-        new=AsyncMock(side_effect=CHSApiError("not found", 404)),
-    ), patch(
-        "custom_components.chstides.coordinator.get_predicted_water_level",
-        new=AsyncMock(side_effect=CHSApiError("wlp error", 500)),
+    with (
+        patch(
+            "custom_components.chstides.coordinator.get_observed_water_level",
+            new=AsyncMock(side_effect=CHSApiError("not found", 404)),
+        ),
+        patch(
+            "custom_components.chstides.coordinator.get_predicted_water_level",
+            new=AsyncMock(side_effect=CHSApiError("wlp error", 500)),
+        ),
     ):
         coord = ObservedDataCoordinator(hass, mock_session, "s1", 5)
         result = await coord._async_update_data()
@@ -159,12 +165,15 @@ async def test_observed_coordinator_returns_none_when_wlp_also_fails(
 
 @pytest.mark.asyncio
 async def test_observed_coordinator_returns_none_when_wlp_empty(hass, mock_session):
-    with patch(
-        "custom_components.chstides.coordinator.get_observed_water_level",
-        new=AsyncMock(side_effect=CHSApiError("not found", 404)),
-    ), patch(
-        "custom_components.chstides.coordinator.get_predicted_water_level",
-        new=AsyncMock(return_value=[]),
+    with (
+        patch(
+            "custom_components.chstides.coordinator.get_observed_water_level",
+            new=AsyncMock(side_effect=CHSApiError("not found", 404)),
+        ),
+        patch(
+            "custom_components.chstides.coordinator.get_predicted_water_level",
+            new=AsyncMock(return_value=[]),
+        ),
     ):
         coord = ObservedDataCoordinator(hass, mock_session, "s1", 5)
         result = await coord._async_update_data()
