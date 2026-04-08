@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Home Assistant Dev",
+      "type": "python",
+      "request": "launch",
+      "module": "homeassistant",
+      "args": ["-c", ".devconfig"],
+      "justMyCode": false
+    },
+    {
+      "name": "Pytest",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["tests/", "-v"],
+      "justMyCode": false
+    }
+  ]
+}
