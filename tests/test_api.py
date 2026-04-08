@@ -14,6 +14,7 @@ from custom_components.chstides.api import (
     derive_tide_phase,
     find_nearest_station,
     get_observed_water_level,
+    get_predicted_water_level,
     get_predictions,
     get_stations,
 )
@@ -258,3 +259,36 @@ async def test_get_predictions_raises_on_error(mock_aiohttp):
     async with aiohttp.ClientSession() as session:
         with pytest.raises(CHSApiError):
             await get_predictions(session, "s001", days=1)
+
+
+@pytest.mark.asyncio
+async def test_get_predicted_water_level_returns_estimated_data(mock_aiohttp):
+    mock_aiohttp.get(
+        re.compile(
+            r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data.*time-series-code=wlp"
+        ),
+        payload=[
+            {"eventDate": "2026-04-08T12:00:00Z", "value": 1.80, "qcFlagCode": "1"},
+            {"eventDate": "2026-04-08T12:15:00Z", "value": 1.85, "qcFlagCode": "1"},
+        ],
+    )
+    async with aiohttp.ClientSession() as session:
+        points = await get_predicted_water_level(session, "s001")
+    assert len(points) == 2
+    assert points[0].height_m == 1.80
+    assert points[1].height_m == 1.85
+    assert points[0].source == "estimated"
+    assert points[1].source == "estimated"
+    assert points[0].time_series_code == "wlp"
+    assert points[0].station_id == "s001"
+
+
+@pytest.mark.asyncio
+async def test_get_predicted_water_level_raises_on_error(mock_aiohttp):
+    mock_aiohttp.get(
+        re.compile(r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data"),
+        status=503,
+    )
+    async with aiohttp.ClientSession() as session:
+        with pytest.raises(CHSApiError):
+            await get_predicted_water_level(session, "s001")

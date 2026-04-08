@@ -129,6 +129,37 @@ async def get_observed_water_level(
     ]
 
 
+async def get_predicted_water_level(
+    session: aiohttp.ClientSession, station_id: str
+) -> list[ObservedData]:
+    """Return ~30 min of wlp predictions around now as ObservedData."""
+    from .const import TIME_SERIES_PREDICTED_CONTINUOUS
+
+    now = datetime.now(UTC).replace(tzinfo=None)
+    from_dt = now - timedelta(minutes=30)
+    to_dt = now + timedelta(minutes=30)
+    chs = _SessionCHSIWLS(session, station_id=station_id)
+    data = await chs.station_data(
+        **{
+            "time-series-code": TIME_SERIES_PREDICTED_CONTINUOUS,
+            "from": from_dt,
+            "to": to_dt,
+        }
+    )
+    return [
+        ObservedData(
+            station_id=station_id,
+            timestamp=datetime.fromisoformat(
+                d["eventDate"].replace("Z", "+00:00")
+            ),
+            height_m=float(d["value"]),
+            time_series_code=TIME_SERIES_PREDICTED_CONTINUOUS,
+            source="estimated",
+        )
+        for d in data
+    ]
+
+
 async def get_predictions(
     session: aiohttp.ClientSession, station_id: str, days: int
 ) -> list[PredictionPoint]:
