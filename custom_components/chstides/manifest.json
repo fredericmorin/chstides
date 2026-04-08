@@ -6,5 +6,5 @@
   "iot_class": "cloud_polling",
   "config_flow": true,
   "codeowners": [],
-  "requirements": []
+  "requirements": ["chstides==0.3.2"]
 }
