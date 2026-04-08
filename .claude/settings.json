@@ -14,7 +14,12 @@
       "Bash(make *)",
       "Bash(uv *)",
       "Bash(ty *)",
-      "Bash(ruff *)"
+      "Bash(ruff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(python -m pytest *)"
     ],
     "deny": [
       "Bash(rm *)",
