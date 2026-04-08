@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import CONF_STATION_CODE, CONF_STATION_ID, CONF_STATION_NAME, DOMAIN
 from .coordinator import ObservedDataCoordinator, PredictionCoordinator
@@ -136,7 +137,7 @@ class NextHighTideSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity)
     def native_value(self) -> str | None:
         if self.coordinator.next_high is None:
             return None
-        return self.coordinator.next_high.timestamp.strftime("%H:%M")
+        return dt_util.as_local(self.coordinator.next_high.timestamp).strftime("%H:%M")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -168,7 +169,7 @@ class NextLowTideSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity):
     def native_value(self) -> str | None:
         if self.coordinator.next_low is None:
             return None
-        return self.coordinator.next_low.timestamp.strftime("%H:%M")
+        return dt_util.as_local(self.coordinator.next_low.timestamp).strftime("%H:%M")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

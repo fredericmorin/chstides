@@ -1,7 +1,9 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock
+from zoneinfo import ZoneInfo
 
 import pytest
+from homeassistant.util import dt as dt_util
 
 from custom_components.chstides.api import ObservedData, PredictionPoint, TidePhase
 from custom_components.chstides.coordinator import (
@@ -62,6 +64,7 @@ def test_tide_phase_sensor_unique_id(observed_coord):
 
 @pytest.fixture
 def prediction_coord(hass):
+    dt_util.set_default_time_zone(ZoneInfo("UTC"))
     future_high = datetime(2026, 4, 8, 14, 30, tzinfo=UTC)
     future_low = datetime(2026, 4, 8, 20, 0, tzinfo=UTC)
     coord = MagicMock(spec=PredictionCoordinator)
