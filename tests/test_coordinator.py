@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
+import aiohttp
 import pytest
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
@@ -22,8 +23,8 @@ def hass(hass):
 
 
 @pytest.fixture
-def mock_client():
-    return AsyncMock()
+def mock_session():
+    return AsyncMock(spec=aiohttp.ClientSession)
 
 
 @pytest.fixture
@@ -32,44 +33,61 @@ def now():
 
 
 @pytest.mark.asyncio
-async def test_observed_coordinator_stores_latest_and_phase(hass, mock_client, now):
-    mock_client.get_observed_water_level.return_value = [
-        ObservedData("s1", now, 1.0, "wlo"),
-        ObservedData("s1", now, 1.5, "wlo"),
-    ]
-    coord = ObservedDataCoordinator(hass, mock_client, "s1", 5)
-    await coord.async_refresh()
+async def test_observed_coordinator_stores_latest_and_phase(hass, mock_session, now):
+    with patch(
+        "custom_components.chstides.coordinator.get_observed_water_level",
+        new=AsyncMock(
+            return_value=[
+                ObservedData("s1", now, 1.0, "wlo"),
+                ObservedData("s1", now, 1.5, "wlo"),
+            ]
+        ),
+    ):
+        coord = ObservedDataCoordinator(hass, mock_session, "s1", 5)
+        await coord.async_refresh()
 
     assert coord.latest.height_m == 1.5
     assert coord.phase == TidePhase.RISING
 
 
 @pytest.mark.asyncio
-async def test_observed_coordinator_raises_on_api_error(hass, mock_client):
-    mock_client.get_observed_water_level.side_effect = CHSApiError("timeout", None)
-    coord = ObservedDataCoordinator(hass, mock_client, "s1", 5)
-    with pytest.raises(UpdateFailed):
-        await coord._async_update_data()
+async def test_observed_coordinator_raises_on_api_error(hass, mock_session):
+    with patch(
+        "custom_components.chstides.coordinator.get_observed_water_level",
+        new=AsyncMock(side_effect=CHSApiError("timeout", None)),
+    ):
+        coord = ObservedDataCoordinator(hass, mock_session, "s1", 5)
+        with pytest.raises(UpdateFailed):
+            await coord._async_update_data()
 
 
 @pytest.mark.asyncio
-async def test_observed_coordinator_raises_on_empty_data(hass, mock_client):
-    mock_client.get_observed_water_level.return_value = []
-    coord = ObservedDataCoordinator(hass, mock_client, "s1", 5)
-    with pytest.raises(UpdateFailed):
-        await coord._async_update_data()
+async def test_observed_coordinator_raises_on_empty_data(hass, mock_session):
+    with patch(
+        "custom_components.chstides.coordinator.get_observed_water_level",
+        new=AsyncMock(return_value=[]),
+    ):
+        coord = ObservedDataCoordinator(hass, mock_session, "s1", 5)
+        with pytest.raises(UpdateFailed):
+            await coord._async_update_data()
 
 
 @pytest.mark.asyncio
-async def test_prediction_coordinator_sets_next_high_and_low(hass, mock_client, now):
-    future_high = datetime(2026, 4, 8, 14, 30, tzinfo=UTC)
-    future_low = datetime(2026, 4, 8, 20, 0, tzinfo=UTC)
-    mock_client.get_predictions.return_value = [
-        PredictionPoint(future_high, 3.1, "HIGH"),
-        PredictionPoint(future_low, 0.4, "LOW"),
-    ]
-    coord = PredictionCoordinator(hass, mock_client, "s1", 7, 24)
-    await coord.async_refresh()
+async def test_prediction_coordinator_sets_next_high_and_low(hass, mock_session, now):
+    from datetime import timedelta
+    future_high = now + timedelta(hours=2)
+    future_low = now + timedelta(hours=6)
+    with patch(
+        "custom_components.chstides.coordinator.get_predictions",
+        new=AsyncMock(
+            return_value=[
+                PredictionPoint(future_high, 3.1, "HIGH"),
+                PredictionPoint(future_low, 0.4, "LOW"),
+            ]
+        ),
+    ):
+        coord = PredictionCoordinator(hass, mock_session, "s1", 7, 24)
+        await coord.async_refresh()
 
     assert coord.next_high.height_m == 3.1
     assert coord.next_low.height_m == 0.4
@@ -77,14 +95,23 @@ async def test_prediction_coordinator_sets_next_high_and_low(hass, mock_client, 
 
 
 @pytest.mark.asyncio
-async def test_prediction_coordinator_keeps_stale_on_error(hass, mock_client, now):
-    future = datetime(2026, 4, 8, 14, 30, tzinfo=UTC)
-    mock_client.get_predictions.return_value = [PredictionPoint(future, 3.1, "HIGH")]
-    coord = PredictionCoordinator(hass, mock_client, "s1", 7, 24)
-    await coord.async_refresh()
+async def test_prediction_coordinator_keeps_stale_on_error(hass, mock_session, now):
+    from datetime import timedelta
+    future = now + timedelta(hours=2)
+    first_call = AsyncMock(return_value=[PredictionPoint(future, 3.1, "HIGH")])
+    second_call = AsyncMock(side_effect=CHSApiError("timeout", None))
 
-    # Second call fails — stale data retained
-    mock_client.get_predictions.side_effect = CHSApiError("timeout", None)
-    await coord.async_refresh()
+    with patch(
+        "custom_components.chstides.coordinator.get_predictions",
+        new=first_call,
+    ):
+        coord = PredictionCoordinator(hass, mock_session, "s1", 7, 24)
+        await coord.async_refresh()
+
+    with patch(
+        "custom_components.chstides.coordinator.get_predictions",
+        new=second_call,
+    ):
+        await coord.async_refresh()
 
     assert coord.next_high.height_m == 3.1
