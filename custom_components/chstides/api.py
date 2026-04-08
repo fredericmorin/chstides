@@ -39,6 +39,7 @@ class ObservedData:
     timestamp: datetime
     height_m: float
     time_series_code: str
+    source: Literal["measured", "estimated"] = "measured"
 
 
 @dataclass

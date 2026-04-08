@@ -186,6 +186,8 @@ async def test_get_observed_water_level_returns_observed_data(mock_aiohttp):
     assert points[1].height_m == 1.50
     assert points[0].station_id == "s001"
     assert points[0].time_series_code == "wlo"
+    assert points[0].source == "measured"
+    assert points[1].source == "measured"
 
 
 @pytest.mark.asyncio
