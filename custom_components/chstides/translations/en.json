@@ -1,0 +1,41 @@
+{
+  "config": {
+    "step": {
+      "station": {
+        "title": "Select Tide Station",
+        "description": "Enter a CHS station code or find the nearest station to your home location.",
+        "data": {
+          "station_code": "Station code",
+          "auto_detect": "Find nearest station to home location"
+        }
+      },
+      "options": {
+        "title": "Polling Options",
+        "data": {
+          "observed_interval_minutes": "Observed data poll interval (minutes)",
+          "prediction_days": "Days of predictions to load",
+          "prediction_interval_hours": "Prediction refresh interval (hours)"
+        }
+      }
+    },
+    "error": {
+      "station_not_found": "No station found for that code. Check and try again.",
+      "cannot_connect": "Cannot connect to the CHS API. Check your network."
+    },
+    "abort": {
+      "already_configured": "This station is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "options": {
+        "title": "CHSTides Options",
+        "data": {
+          "observed_interval_minutes": "Observed data poll interval (minutes)",
+          "prediction_days": "Days of predictions to load",
+          "prediction_interval_hours": "Prediction refresh interval (hours)"
+        }
+      }
+    }
+  }
+}
