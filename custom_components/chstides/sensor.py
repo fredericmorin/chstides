@@ -1,7 +1,7 @@
 """Sensor entities for CHSTides."""
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
@@ -11,7 +11,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, CONF_STATION_NAME, CONF_STATION_CODE, CONF_STATION_ID
+from .const import CONF_STATION_CODE, CONF_STATION_ID, CONF_STATION_NAME, DOMAIN
 from .coordinator import ObservedDataCoordinator, PredictionCoordinator
 
 
@@ -37,13 +37,18 @@ async def async_setup_entry(
     station_code = entry.data[CONF_STATION_CODE]
     station_id = entry.data[CONF_STATION_ID]
 
+    eid = entry.entry_id
     async_add_entities(
         [
-            WaterLevelSensor(observed, station_name, station_code, station_id, entry.entry_id),
-            TidePhaseSensor(observed, station_name, station_code, station_id, entry.entry_id),
-            NextHighTideSensor(predictions, station_name, station_code, station_id, entry.entry_id),
-            NextLowTideSensor(predictions, station_name, station_code, station_id, entry.entry_id),
-            TideForecastSensor(predictions, station_name, station_code, station_id, entry.entry_id),
+            WaterLevelSensor(observed, station_name, station_code, station_id, eid),
+            TidePhaseSensor(observed, station_name, station_code, station_id, eid),
+            NextHighTideSensor(
+                predictions, station_name, station_code, station_id, eid
+            ),
+            NextLowTideSensor(predictions, station_name, station_code, station_id, eid),
+            TideForecastSensor(
+                predictions, station_name, station_code, station_id, eid
+            ),
         ]
     )
 
@@ -112,7 +117,7 @@ class TidePhaseSensor(CoordinatorEntity[ObservedDataCoordinator], SensorEntity):
 
 
 class NextHighTideSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity):
-    """Next predicted high tide — time as state, height and ISO datetime as attributes."""
+    """Next predicted high tide — time as state, height + ISO datetime as attributes."""
 
     def __init__(
         self,
@@ -131,8 +136,7 @@ class NextHighTideSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity)
     def native_value(self) -> str | None:
         if self.coordinator.next_high is None:
             return None
-        local_dt = self.coordinator.next_high.timestamp.astimezone()
-        return local_dt.strftime("%H:%M")
+        return self.coordinator.next_high.timestamp.strftime("%H:%M")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -145,7 +149,7 @@ class NextHighTideSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity)
 
 
 class NextLowTideSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity):
-    """Next predicted low tide — time as state, height and ISO datetime as attributes."""
+    """Next predicted low tide — time as state, height + ISO datetime as attributes."""
 
     def __init__(
         self,
@@ -164,8 +168,7 @@ class NextLowTideSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity):
     def native_value(self) -> str | None:
         if self.coordinator.next_low is None:
             return None
-        local_dt = self.coordinator.next_low.timestamp.astimezone()
-        return local_dt.strftime("%H:%M")
+        return self.coordinator.next_low.timestamp.strftime("%H:%M")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -178,7 +181,7 @@ class NextLowTideSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity):
 
 
 class TideForecastSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity):
-    """Full N-day tide forecast — event count as state, list of highs/lows as attribute."""
+    """Full N-day tide forecast — event count as state, highs/lows as attribute."""
 
     _attr_native_unit_of_measurement = "events"
 
@@ -204,7 +207,7 @@ class TideForecastSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity)
         return {
             "forecast": [
                 {
-                    "datetime": p.timestamp.astimezone().isoformat(),
+                    "datetime": p.timestamp.isoformat(),
                     "type": p.type,
                     "height_m": p.height_m,
                 }

@@ -1,13 +1,21 @@
 """DataUpdateCoordinators for observed water level and tide predictions."""
+
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import CHSApiClient, CHSApiError, ObservedData, PredictionPoint, TidePhase, derive_tide_phase
+from .api import (
+    CHSApiClient,
+    CHSApiError,
+    ObservedData,
+    PredictionPoint,
+    TidePhase,
+    derive_tide_phase,
+)
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,11 +83,19 @@ class PredictionCoordinator(DataUpdateCoordinator):
             points = await self._client.get_predictions(self._station_id, self._days)
         except CHSApiError as err:
             _LOGGER.warning("Failed to fetch predictions, keeping stale data: %s", err)
-            return {"forecast": self.forecast, "next_high": self.next_high, "next_low": self.next_low}
+            return {
+                "forecast": self.forecast,
+                "next_high": self.next_high,
+                "next_low": self.next_low,
+            }
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         self.forecast = points
         future = [p for p in points if p.timestamp > now]
         self.next_high = next((p for p in future if p.type == "HIGH"), None)
         self.next_low = next((p for p in future if p.type == "LOW"), None)
-        return {"forecast": self.forecast, "next_high": self.next_high, "next_low": self.next_low}
+        return {
+            "forecast": self.forecast,
+            "next_high": self.next_high,
+            "next_low": self.next_low,
+        }

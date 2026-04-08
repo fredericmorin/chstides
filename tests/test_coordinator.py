@@ -1,10 +1,19 @@
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock
+
 import pytest
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
-from custom_components.chstides.api import ObservedData, PredictionPoint, TidePhase, CHSApiError
-from custom_components.chstides.coordinator import ObservedDataCoordinator, PredictionCoordinator
+from custom_components.chstides.api import (
+    CHSApiError,
+    ObservedData,
+    PredictionPoint,
+    TidePhase,
+)
+from custom_components.chstides.coordinator import (
+    ObservedDataCoordinator,
+    PredictionCoordinator,
+)
 
 
 @pytest.fixture
@@ -19,7 +28,7 @@ def mock_client():
 
 @pytest.fixture
 def now():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 @pytest.mark.asyncio
@@ -53,8 +62,8 @@ async def test_observed_coordinator_raises_on_empty_data(hass, mock_client):
 
 @pytest.mark.asyncio
 async def test_prediction_coordinator_sets_next_high_and_low(hass, mock_client, now):
-    future_high = datetime(2026, 4, 8, 14, 30, tzinfo=timezone.utc)
-    future_low = datetime(2026, 4, 8, 20, 0, tzinfo=timezone.utc)
+    future_high = datetime(2026, 4, 8, 14, 30, tzinfo=UTC)
+    future_low = datetime(2026, 4, 8, 20, 0, tzinfo=UTC)
     mock_client.get_predictions.return_value = [
         PredictionPoint(future_high, 3.1, "HIGH"),
         PredictionPoint(future_low, 0.4, "LOW"),
@@ -69,7 +78,7 @@ async def test_prediction_coordinator_sets_next_high_and_low(hass, mock_client, 
 
 @pytest.mark.asyncio
 async def test_prediction_coordinator_keeps_stale_on_error(hass, mock_client, now):
-    future = datetime(2026, 4, 8, 14, 30, tzinfo=timezone.utc)
+    future = datetime(2026, 4, 8, 14, 30, tzinfo=UTC)
     mock_client.get_predictions.return_value = [PredictionPoint(future, 3.1, "HIGH")]
     coord = PredictionCoordinator(hass, mock_client, "s1", 7, 24)
     await coord.async_refresh()

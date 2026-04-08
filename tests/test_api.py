@@ -1,18 +1,28 @@
-import math
+import re
+from datetime import UTC, datetime
+
+import aiohttp
 import pytest
-from datetime import datetime, timezone
+from aioresponses import aioresponses
+
 from custom_components.chstides.api import (
-    Station,
+    CHSApiClient,
+    CHSApiError,
     ObservedData,
     PredictionPoint,
+    Station,
     TidePhase,
-    CHSApiError,
+    derive_tide_phase,
+    find_highs_lows,
     find_nearest_station,
 )
+from custom_components.chstides.const import CHS_API_BASE
 
 
 def test_station_dataclass():
-    s = Station(id="abc", code="03580", name="Quebec City", latitude=46.81, longitude=-71.22)
+    s = Station(
+        id="abc", code="03580", name="Quebec City", latitude=46.81, longitude=-71.22
+    )
     assert s.id == "abc"
     assert s.code == "03580"
     assert s.latitude == 46.81
@@ -40,11 +50,8 @@ def test_chs_api_error_stores_status():
     assert "not found" in str(err)
 
 
-from custom_components.chstides.api import derive_tide_phase, find_highs_lows
-
-
 def _obs(height: float) -> ObservedData:
-    return ObservedData("s1", datetime.now(timezone.utc), height, "wlo")
+    return ObservedData("s1", datetime.now(UTC), height, "wlo")
 
 
 def test_derive_tide_phase_rising():
@@ -66,7 +73,7 @@ def test_derive_tide_phase_empty_defaults_rising():
 def test_find_highs_lows_identifies_single_peak_and_valley():
     # heights: low -> peak -> low -> valley -> low
     heights = [0.5, 1.0, 2.0, 1.5, 0.8, 0.3, 0.6]
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     points = [PredictionPoint(now, h, "UNKNOWN") for h in heights]
     result = find_highs_lows(points)
     highs = [p for p in result if p.type == "HIGH"]
@@ -78,23 +85,15 @@ def test_find_highs_lows_identifies_single_peak_and_valley():
 
 
 def test_find_highs_lows_empty_for_short_series():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     points = [PredictionPoint(now, h, "UNKNOWN") for h in [1.0, 2.0]]
     assert find_highs_lows(points) == []
 
 
 def test_find_highs_lows_flat_series_returns_empty():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     points = [PredictionPoint(now, 1.0, "UNKNOWN") for _ in range(5)]
     assert find_highs_lows(points) == []
-
-
-import re
-import aiohttp
-import pytest
-from aioresponses import aioresponses
-from custom_components.chstides.api import CHSApiClient
-from custom_components.chstides.const import CHS_API_BASE
 
 
 @pytest.fixture

@@ -1,18 +1,19 @@
 """Config flow for CHSTides."""
+
 from __future__ import annotations
 
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlow, OptionsFlow, ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
-    TextSelector,
     BooleanSelector,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
+    TextSelector,
 )
 
 from .api import CHSApiClient, CHSApiError, find_nearest_station
@@ -36,17 +37,19 @@ STEP_STATION_SCHEMA = vol.Schema(
     }
 )
 
+_NUM_BOX = NumberSelectorMode.BOX
+
 STEP_OPTIONS_SCHEMA = vol.Schema(
     {
         vol.Required(
             CONF_OBSERVED_INTERVAL, default=DEFAULT_OBSERVED_INTERVAL_MINUTES
-        ): NumberSelector(NumberSelectorConfig(min=1, max=60, mode=NumberSelectorMode.BOX)),
+        ): NumberSelector(NumberSelectorConfig(min=1, max=60, mode=_NUM_BOX)),
         vol.Required(
             CONF_PREDICTION_DAYS, default=DEFAULT_PREDICTION_DAYS
-        ): NumberSelector(NumberSelectorConfig(min=1, max=30, mode=NumberSelectorMode.BOX)),
+        ): NumberSelector(NumberSelectorConfig(min=1, max=30, mode=_NUM_BOX)),
         vol.Required(
             CONF_PREDICTION_INTERVAL, default=DEFAULT_PREDICTION_INTERVAL_HOURS
-        ): NumberSelector(NumberSelectorConfig(min=1, max=24, mode=NumberSelectorMode.BOX)),
+        ): NumberSelector(NumberSelectorConfig(min=1, max=24, mode=_NUM_BOX)),
     }
 )
 
@@ -84,11 +87,17 @@ class CHSTidesConfigFlow(ConfigFlow, domain=DOMAIN):
                         step_id="station",
                         data_schema=vol.Schema(
                             {
-                                vol.Optional("station_code", default=nearest.code): TextSelector(),
-                                vol.Optional("auto_detect", default=False): BooleanSelector(),
+                                vol.Optional(
+                                    "station_code", default=nearest.code
+                                ): TextSelector(),
+                                vol.Optional(
+                                    "auto_detect", default=False
+                                ): BooleanSelector(),
                             }
                         ),
-                        description_placeholders={"nearest_station": self._nearest_hint},
+                        description_placeholders={
+                            "nearest_station": self._nearest_hint
+                        },
                     )
                 except CHSApiError:
                     errors["base"] = "cannot_connect"
@@ -161,16 +170,20 @@ class CHSTidesOptionsFlow(OptionsFlow):
             {
                 vol.Required(
                     CONF_OBSERVED_INTERVAL,
-                    default=current.get(CONF_OBSERVED_INTERVAL, DEFAULT_OBSERVED_INTERVAL_MINUTES),
-                ): NumberSelector(NumberSelectorConfig(min=1, max=60, mode=NumberSelectorMode.BOX)),
+                    default=current.get(
+                        CONF_OBSERVED_INTERVAL, DEFAULT_OBSERVED_INTERVAL_MINUTES
+                    ),
+                ): NumberSelector(NumberSelectorConfig(min=1, max=60, mode=_NUM_BOX)),
                 vol.Required(
                     CONF_PREDICTION_DAYS,
                     default=current.get(CONF_PREDICTION_DAYS, DEFAULT_PREDICTION_DAYS),
-                ): NumberSelector(NumberSelectorConfig(min=1, max=30, mode=NumberSelectorMode.BOX)),
+                ): NumberSelector(NumberSelectorConfig(min=1, max=30, mode=_NUM_BOX)),
                 vol.Required(
                     CONF_PREDICTION_INTERVAL,
-                    default=current.get(CONF_PREDICTION_INTERVAL, DEFAULT_PREDICTION_INTERVAL_HOURS),
-                ): NumberSelector(NumberSelectorConfig(min=1, max=24, mode=NumberSelectorMode.BOX)),
+                    default=current.get(
+                        CONF_PREDICTION_INTERVAL, DEFAULT_PREDICTION_INTERVAL_HOURS
+                    ),
+                ): NumberSelector(NumberSelectorConfig(min=1, max=24, mode=_NUM_BOX)),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

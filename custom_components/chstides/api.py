@@ -1,9 +1,10 @@
 """CHS API client, data models, and tide math helpers."""
+
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 import aiohttp
@@ -54,7 +55,10 @@ def find_nearest_station(stations: list[Station], lat: float, lon: float) -> Sta
         phi1, phi2 = math.radians(lat1), math.radians(lat2)
         dphi = math.radians(lat2 - lat1)
         dlambda = math.radians(lon2 - lon1)
-        a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+        a = (
+            math.sin(dphi / 2) ** 2
+            + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+        )
         return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
     return min(stations, key=lambda s: haversine(lat, lon, s.latitude, s.longitude))
@@ -104,7 +108,7 @@ class CHSApiClient:
     async def get_observed_water_level(self, station_id: str) -> list[ObservedData]:
         from .const import TIME_SERIES_OBSERVED
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         from_dt = now - timedelta(minutes=30)
         params = {
             "time-series-code": TIME_SERIES_OBSERVED,
@@ -122,10 +126,12 @@ class CHSApiClient:
             for d in data
         ]
 
-    async def get_predictions(self, station_id: str, days: int) -> list[PredictionPoint]:
+    async def get_predictions(
+        self, station_id: str, days: int
+    ) -> list[PredictionPoint]:
         from .const import TIME_SERIES_PREDICTED
 
-        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
         to_dt = today + timedelta(days=days, hours=23, minutes=59, seconds=59)
         params = {
             "time-series-code": TIME_SERIES_PREDICTED,
