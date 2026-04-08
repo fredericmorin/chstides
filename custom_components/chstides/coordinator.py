@@ -16,6 +16,7 @@ from .api import (
     TidePhase,
     derive_tide_phase,
     get_observed_water_level,
+    get_predicted_water_level,
     get_predictions,
 )
 from .const import DOMAIN
@@ -51,13 +52,29 @@ class ObservedDataCoordinator(DataUpdateCoordinator):
             if err.status_code == 404:
                 _LOGGER.warning(
                     "Station %s has no observed water level data (wlo); "
-                    "observed sensors will be unavailable.",
+                    "falling back to predicted water level (wlp).",
                     self._station_id,
                 )
-                return {"latest": None, "phase": self.phase}
+                return await self._fetch_predicted_fallback()
             raise UpdateFailed(f"CHS API error: {err}") from err
         if not points:
             raise UpdateFailed("No observed data returned from CHS API")
+        self.latest = points[-1]
+        self.phase = derive_tide_phase(points)
+        return {"latest": self.latest, "phase": self.phase}
+
+    async def _fetch_predicted_fallback(self) -> dict:
+        try:
+            points = await get_predicted_water_level(self._session, self._station_id)
+        except CHSApiError as err:
+            _LOGGER.warning(
+                "Failed to fetch predicted fallback for station %s: %s",
+                self._station_id,
+                err,
+            )
+            return {"latest": None, "phase": self.phase}
+        if not points:
+            return {"latest": None, "phase": self.phase}
         self.latest = points[-1]
         self.phase = derive_tide_phase(points)
         return {"latest": self.latest, "phase": self.phase}
