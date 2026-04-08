@@ -132,12 +132,15 @@ async def get_observed_water_level(
 async def get_predicted_water_level(
     session: aiohttp.ClientSession, station_id: str
 ) -> list[ObservedData]:
-    """Return ~30 min of wlp predictions around now as ObservedData."""
+    """Return last 30 min of wlp predictions up to now.
+
+    Returns ObservedData with source='estimated'.
+    """
     from .const import TIME_SERIES_PREDICTED_CONTINUOUS
 
     now = datetime.now(UTC).replace(tzinfo=None)
     from_dt = now - timedelta(minutes=30)
-    to_dt = now + timedelta(minutes=30)
+    to_dt = now
     chs = _SessionCHSIWLS(session, station_id=station_id)
     data = await chs.station_data(
         **{

@@ -286,7 +286,9 @@ async def test_get_predicted_water_level_returns_estimated_data(mock_aiohttp):
 @pytest.mark.asyncio
 async def test_get_predicted_water_level_raises_on_error(mock_aiohttp):
     mock_aiohttp.get(
-        re.compile(r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data"),
+        re.compile(
+            r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data.*time-series-code=wlp"
+        ),
         status=503,
     )
     async with aiohttp.ClientSession() as session:
