@@ -5,10 +5,10 @@ Home Assistant custom integration for Canadian Hydrographic Service tide data.
 Distributed via HACS. API: https://api-sine.dfo-mpo.gc.ca
 
 ## Dev Commands
-- `make dev` — start local HA instance with integration loaded (config in `.devconfig/`)
-- `make test` — run pytest suite
-- `make lint` — ruff check
-- `make format` — ruff format
+- `scripts/setup` — install all dependencies
+- `scripts/develop` — start local HA instance with integration loaded (config in `config/`)
+- `scripts/lint` — ruff format + check
+- `python3 -m pytest tests/ -v` — run pytest suite
 
 ## Key Files
 - `custom_components/chstides/api.py` — CHS API client + data models + pure helpers
