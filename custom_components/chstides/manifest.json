@@ -1,0 +1,10 @@
+{
+  "domain": "chstides",
+  "name": "CHSTides",
+  "version": "0.1.0",
+  "documentation": "https://github.com/placeholder/chstides",
+  "iot_class": "cloud_polling",
+  "config_flow": true,
+  "codeowners": [],
+  "requirements": []
+}

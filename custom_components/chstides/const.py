@@ -1,0 +1,16 @@
+DOMAIN = "chstides"
+CHS_API_BASE = "https://api-sine.dfo-mpo.gc.ca"
+
+TIME_SERIES_OBSERVED = "wlo"
+TIME_SERIES_PREDICTED = "wlp"
+
+DEFAULT_OBSERVED_INTERVAL_MINUTES = 5
+DEFAULT_PREDICTION_DAYS = 7
+DEFAULT_PREDICTION_INTERVAL_HOURS = 24
+
+CONF_STATION_ID = "station_id"
+CONF_STATION_CODE = "station_code"
+CONF_STATION_NAME = "station_name"
+CONF_OBSERVED_INTERVAL = "observed_interval_minutes"
+CONF_PREDICTION_DAYS = "prediction_days"
+CONF_PREDICTION_INTERVAL = "prediction_interval_hours"
