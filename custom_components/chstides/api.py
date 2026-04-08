@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
+
+import aiohttp
 
 
 class TidePhase:
@@ -56,6 +58,90 @@ def find_nearest_station(stations: list[Station], lat: float, lon: float) -> Sta
         return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
     return min(stations, key=lambda s: haversine(lat, lon, s.latitude, s.longitude))
+
+
+class CHSApiClient:
+    """HTTP client for the CHS Integrated Water Level System API."""
+
+    def __init__(self, session: aiohttp.ClientSession) -> None:
+        self._session = session
+
+    async def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
+        from .const import CHS_API_BASE
+
+        url = f"{CHS_API_BASE}{path}"
+        async with self._session.get(url, params=params) as resp:
+            if resp.status >= 400:
+                raise CHSApiError(f"CHS API returned {resp.status}", resp.status)
+            return await resp.json()
+
+    async def get_stations(self, code: str | None = None) -> list[Station]:
+        params: dict[str, str] = {}
+        if code:
+            params["code"] = code
+        data = await self._get("/api/v1/stations", params or None)
+        return [
+            Station(
+                id=s["id"],
+                code=s["code"],
+                name=s["officialName"],
+                latitude=s["latitude"],
+                longitude=s["longitude"],
+            )
+            for s in data
+        ]
+
+    async def get_station(self, station_id: str) -> Station:
+        data = await self._get(f"/api/v1/stations/{station_id}")
+        return Station(
+            id=data["id"],
+            code=data["code"],
+            name=data["officialName"],
+            latitude=data["latitude"],
+            longitude=data["longitude"],
+        )
+
+    async def get_observed_water_level(self, station_id: str) -> list[ObservedData]:
+        from .const import TIME_SERIES_OBSERVED
+
+        now = datetime.now(timezone.utc)
+        from_dt = now - timedelta(minutes=30)
+        params = {
+            "time-series-code": TIME_SERIES_OBSERVED,
+            "from": from_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "to": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        data = await self._get(f"/api/v1/stations/{station_id}/data", params)
+        return [
+            ObservedData(
+                station_id=station_id,
+                timestamp=datetime.fromisoformat(d["eventDate"].replace("Z", "+00:00")),
+                height_m=float(d["value"]),
+                time_series_code=TIME_SERIES_OBSERVED,
+            )
+            for d in data
+        ]
+
+    async def get_predictions(self, station_id: str, days: int) -> list[PredictionPoint]:
+        from .const import TIME_SERIES_PREDICTED
+
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        to_dt = today + timedelta(days=days, hours=23, minutes=59, seconds=59)
+        params = {
+            "time-series-code": TIME_SERIES_PREDICTED,
+            "from": today.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "to": to_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        data = await self._get(f"/api/v1/stations/{station_id}/data", params)
+        raw = [
+            PredictionPoint(
+                timestamp=datetime.fromisoformat(d["eventDate"].replace("Z", "+00:00")),
+                height_m=float(d["value"]),
+                type="UNKNOWN",
+            )
+            for d in data
+        ]
+        return find_highs_lows(raw)
 
 
 def derive_tide_phase(recent_points: list[ObservedData]) -> str:
