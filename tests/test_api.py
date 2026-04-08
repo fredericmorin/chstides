@@ -17,6 +17,7 @@ from custom_components.chstides.api import (
     find_highs_lows,
     find_nearest_station,
     get_observed_water_level,
+    get_predictions,
     get_stations,
 )
 
@@ -225,3 +226,62 @@ async def test_get_observed_water_level_raises_on_error(mock_aiohttp):
     async with aiohttp.ClientSession() as session:
         with pytest.raises(CHSApiError):
             await get_observed_water_level(session, "s001")
+
+
+@pytest.mark.asyncio
+async def test_get_predictions_classifies_high_low(mock_aiohttp):
+    mock_aiohttp.get(
+        re.compile(
+            r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data.*time-series-code=wlp-hilo"
+        ),
+        payload=[
+            {"eventDate": "2026-04-08T06:00:00Z", "value": 3.1, "qcFlagCode": "1"},
+            {"eventDate": "2026-04-08T12:00:00Z", "value": 0.4, "qcFlagCode": "1"},
+            {"eventDate": "2026-04-08T18:00:00Z", "value": 2.9, "qcFlagCode": "1"},
+        ],
+    )
+    async with aiohttp.ClientSession() as session:
+        points = await get_predictions(session, "s001", days=1)
+    assert len(points) == 3
+    assert points[0].type == "HIGH"
+    assert points[0].height_m == 3.1
+    assert points[1].type == "LOW"
+    assert points[1].height_m == 0.4
+    assert points[2].type == "HIGH"
+    assert points[2].height_m == 2.9
+
+
+@pytest.mark.asyncio
+async def test_get_predictions_single_event_defaults_high(mock_aiohttp):
+    mock_aiohttp.get(
+        re.compile(r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data"),
+        payload=[
+            {"eventDate": "2026-04-08T06:00:00Z", "value": 3.1, "qcFlagCode": "1"},
+        ],
+    )
+    async with aiohttp.ClientSession() as session:
+        points = await get_predictions(session, "s001", days=1)
+    assert len(points) == 1
+    assert points[0].type == "HIGH"
+
+
+@pytest.mark.asyncio
+async def test_get_predictions_empty_returns_empty(mock_aiohttp):
+    mock_aiohttp.get(
+        re.compile(r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data"),
+        payload=[],
+    )
+    async with aiohttp.ClientSession() as session:
+        points = await get_predictions(session, "s001", days=1)
+    assert points == []
+
+
+@pytest.mark.asyncio
+async def test_get_predictions_raises_on_error(mock_aiohttp):
+    mock_aiohttp.get(
+        re.compile(r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data"),
+        status=500,
+    )
+    async with aiohttp.ClientSession() as session:
+        with pytest.raises(CHSApiError):
+            await get_predictions(session, "s001", days=1)

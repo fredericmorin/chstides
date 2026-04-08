@@ -69,6 +69,52 @@ async def get_observed_water_level(
     ]
 
 
+def _classify_hilo(points: list[PredictionPoint]) -> list[PredictionPoint]:
+    """Label wlp-hilo events HIGH or LOW by comparing adjacent heights."""
+    if not points:
+        return []
+    if len(points) == 1:
+        return [PredictionPoint(points[0].timestamp, points[0].height_m, "HIGH")]
+    result = []
+    for i, p in enumerate(points):
+        if i < len(points) - 1:
+            tide_type: Literal["HIGH", "LOW"] = (
+                "HIGH" if p.height_m > points[i + 1].height_m else "LOW"
+            )
+        else:
+            tide_type = "HIGH" if p.height_m > points[i - 1].height_m else "LOW"
+        result.append(PredictionPoint(p.timestamp, p.height_m, tide_type))
+    return result
+
+
+async def get_predictions(
+    session: aiohttp.ClientSession, station_id: str, days: int
+) -> list[PredictionPoint]:
+    """Return HIGH/LOW tide events for the next N days using wlp-hilo."""
+    from .const import TIME_SERIES_PREDICTED
+
+    # microsecond=1 ensures the library's isoformat()[:-7] strips correctly
+    today = datetime.now(UTC).replace(
+        hour=0, minute=0, second=0, microsecond=1, tzinfo=None
+    )
+    to_dt = today + timedelta(days=days, hours=23, minutes=59, seconds=59)
+    chs = _SessionCHSIWLS(session, station_id=station_id)
+    data = await chs.station_data(**{
+        "time-series-code": TIME_SERIES_PREDICTED,
+        "from": today,
+        "to": to_dt,
+    })
+    raw = [
+        PredictionPoint(
+            timestamp=datetime.fromisoformat(d["eventDate"].replace("Z", "+00:00")),
+            height_m=float(d["value"]),
+            type="HIGH",
+        )
+        for d in data
+    ]
+    return _classify_hilo(raw)
+
+
 async def get_stations(
     session: aiohttp.ClientSession, code: str | None = None
 ) -> list[Station]:
@@ -123,7 +169,7 @@ class ObservedData:
 class PredictionPoint:
     timestamp: datetime
     height_m: float
-    type: Literal["HIGH", "LOW", "UNKNOWN"]
+    type: Literal["HIGH", "LOW"]
 
 
 def find_nearest_station(stations: list[Station], lat: float, lon: float) -> Station:
