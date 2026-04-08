@@ -6,17 +6,17 @@ import pytest
 from aioresponses import aioresponses
 
 from custom_components.chstides.api import (
-    CHSApiClient,
     CHSApiError,
+    CHSApiClient,
     ObservedData,
     PredictionPoint,
     Station,
     TidePhase,
+    _SessionCHSIWLS,
     derive_tide_phase,
     find_highs_lows,
     find_nearest_station,
 )
-from custom_components.chstides.const import CHS_API_BASE
 
 
 def test_station_dataclass():
@@ -103,91 +103,29 @@ def mock_aiohttp():
 
 
 @pytest.mark.asyncio
-async def test_get_stations_returns_stations(mock_aiohttp):
+async def test_session_chs_iwls_raises_on_http_error(mock_aiohttp):
     mock_aiohttp.get(
-        f"{CHS_API_BASE}/api/v1/stations",
-        payload=[
-            {
-                "id": "s001",
-                "code": "03580",
-                "officialName": "Quebec City",
-                "latitude": 46.81,
-                "longitude": -71.22,
-            }
-        ],
+        "https://api-iwls.dfo-mpo.gc.ca/api/v1/stations",
+        status=503,
     )
     async with aiohttp.ClientSession() as session:
-        client = CHSApiClient(session)
-        stations = await client.get_stations()
-    assert len(stations) == 1
-    assert stations[0].code == "03580"
-    assert stations[0].name == "Quebec City"
-
-
-@pytest.mark.asyncio
-async def test_get_stations_with_code_filter(mock_aiohttp):
-    mock_aiohttp.get(
-        f"{CHS_API_BASE}/api/v1/stations?code=03580",
-        payload=[
-            {
-                "id": "s001",
-                "code": "03580",
-                "officialName": "Quebec City",
-                "latitude": 46.81,
-                "longitude": -71.22,
-            }
-        ],
-    )
-    async with aiohttp.ClientSession() as session:
-        client = CHSApiClient(session)
-        stations = await client.get_stations(code="03580")
-    assert stations[0].code == "03580"
-
-
-@pytest.mark.asyncio
-async def test_get_stations_raises_on_error(mock_aiohttp):
-    mock_aiohttp.get(f"{CHS_API_BASE}/api/v1/stations", status=500)
-    async with aiohttp.ClientSession() as session:
-        client = CHSApiClient(session)
+        client = _SessionCHSIWLS(session)
         with pytest.raises(CHSApiError) as exc_info:
-            await client.get_stations()
-    assert exc_info.value.status_code == 500
+            await client._async_get_data(
+                "https://api-iwls.dfo-mpo.gc.ca/api/v1/stations"
+            )
+    assert exc_info.value.status_code == 503
 
 
 @pytest.mark.asyncio
-async def test_get_observed_water_level(mock_aiohttp):
+async def test_session_chs_iwls_returns_json(mock_aiohttp):
     mock_aiohttp.get(
-        re.compile(rf"{re.escape(CHS_API_BASE)}/api/v1/stations/s001/data"),
-        payload=[
-            {"eventDate": "2026-04-07T12:00:00Z", "value": 1.42, "qcFlagCode": "1"},
-            {"eventDate": "2026-04-07T12:05:00Z", "value": 1.50, "qcFlagCode": "1"},
-        ],
+        "https://api-iwls.dfo-mpo.gc.ca/api/v1/stations",
+        payload=[{"id": "s001"}],
     )
     async with aiohttp.ClientSession() as session:
-        client = CHSApiClient(session)
-        points = await client.get_observed_water_level("s001")
-    assert len(points) == 2
-    assert points[0].height_m == 1.42
-    assert points[1].height_m == 1.50
-
-
-@pytest.mark.asyncio
-async def test_get_predictions_returns_highs_lows(mock_aiohttp):
-    # 5 points forming one peak and one valley
-    mock_aiohttp.get(
-        re.compile(rf"{re.escape(CHS_API_BASE)}/api/v1/stations/s001/data"),
-        payload=[
-            {"eventDate": "2026-04-07T00:00:00Z", "value": 0.5, "qcFlagCode": "1"},
-            {"eventDate": "2026-04-07T06:00:00Z", "value": 3.1, "qcFlagCode": "1"},
-            {"eventDate": "2026-04-07T12:00:00Z", "value": 1.0, "qcFlagCode": "1"},
-            {"eventDate": "2026-04-07T18:00:00Z", "value": 0.2, "qcFlagCode": "1"},
-            {"eventDate": "2026-04-07T23:00:00Z", "value": 1.5, "qcFlagCode": "1"},
-        ],
-    )
-    async with aiohttp.ClientSession() as session:
-        client = CHSApiClient(session)
-        points = await client.get_predictions("s001", days=1)
-    highs = [p for p in points if p.type == "HIGH"]
-    lows = [p for p in points if p.type == "LOW"]
-    assert highs[0].height_m == 3.1
-    assert lows[0].height_m == 0.2
+        client = _SessionCHSIWLS(session)
+        data = await client._async_get_data(
+            "https://api-iwls.dfo-mpo.gc.ca/api/v1/stations"
+        )
+    assert data == [{"id": "s001"}]

@@ -8,6 +8,24 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 import aiohttp
+from pychs import CHS_IWLS
+
+
+class _SessionCHSIWLS(CHS_IWLS):
+    """CHS_IWLS subclass that uses an injected aiohttp session."""
+
+    def __init__(self, session: aiohttp.ClientSession, **kwargs: object) -> None:
+        super().__init__(**kwargs)
+        self._ha_session = session
+
+    async def _async_get_data(self, url: str) -> Any:
+        async with self._ha_session.get(url) as resp:
+            if resp.status >= 400:
+                raise CHSApiError(f"CHS API returned {resp.status}", resp.status)
+            return await resp.json()
+
+    async def _set_station_data(self, data: dict) -> None:
+        pass  # We create fresh instances per call; discard library-managed state.
 
 
 class TidePhase:
