@@ -56,3 +56,27 @@ def find_nearest_station(stations: list[Station], lat: float, lon: float) -> Sta
         return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
     return min(stations, key=lambda s: haversine(lat, lon, s.latitude, s.longitude))
+
+
+def derive_tide_phase(recent_points: list[ObservedData]) -> str:
+    """Derive tide phase from the trend of recent observed water level points."""
+    if len(recent_points) < 2:
+        return TidePhase.RISING
+    diff = recent_points[-1].height_m - recent_points[-2].height_m
+    return TidePhase.RISING if diff >= 0 else TidePhase.FALLING
+
+
+def find_highs_lows(points: list[PredictionPoint]) -> list[PredictionPoint]:
+    """Identify local maxima (HIGH) and minima (LOW) in a prediction time series."""
+    if len(points) < 3:
+        return []
+    result = []
+    for i in range(1, len(points) - 1):
+        prev_h = points[i - 1].height_m
+        curr_h = points[i].height_m
+        next_h = points[i + 1].height_m
+        if curr_h > prev_h and curr_h > next_h:
+            result.append(PredictionPoint(points[i].timestamp, curr_h, "HIGH"))
+        elif curr_h < prev_h and curr_h < next_h:
+            result.append(PredictionPoint(points[i].timestamp, curr_h, "LOW"))
+    return result
