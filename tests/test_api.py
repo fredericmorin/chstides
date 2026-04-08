@@ -8,7 +8,6 @@ from aioresponses import aioresponses
 from custom_components.chstides.api import (
     CHSApiError,
     ObservedData,
-    PredictionPoint,
     Station,
     TidePhase,
     _SessionCHSIWLS,

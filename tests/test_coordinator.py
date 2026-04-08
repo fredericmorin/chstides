@@ -75,6 +75,7 @@ async def test_observed_coordinator_raises_on_empty_data(hass, mock_session):
 @pytest.mark.asyncio
 async def test_prediction_coordinator_sets_next_high_and_low(hass, mock_session, now):
     from datetime import timedelta
+
     future_high = now + timedelta(hours=2)
     future_low = now + timedelta(hours=6)
     with patch(
@@ -97,6 +98,7 @@ async def test_prediction_coordinator_sets_next_high_and_low(hass, mock_session,
 @pytest.mark.asyncio
 async def test_prediction_coordinator_keeps_stale_on_error(hass, mock_session, now):
     from datetime import timedelta
+
     future = now + timedelta(hours=2)
     first_call = AsyncMock(return_value=[PredictionPoint(future, 3.1, "HIGH")])
     second_call = AsyncMock(side_effect=CHSApiError("timeout", None))

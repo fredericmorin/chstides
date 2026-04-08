@@ -110,11 +110,13 @@ async def get_observed_water_level(
     now = datetime.now(UTC).replace(tzinfo=None)
     from_dt = now - timedelta(minutes=30)
     chs = _SessionCHSIWLS(session, station_id=station_id)
-    data = await chs.station_data(**{
-        "time-series-code": TIME_SERIES_OBSERVED,
-        "from": from_dt,
-        "to": now,
-    })
+    data = await chs.station_data(
+        **{
+            "time-series-code": TIME_SERIES_OBSERVED,
+            "from": from_dt,
+            "to": now,
+        }
+    )
     return [
         ObservedData(
             station_id=station_id,
@@ -138,11 +140,13 @@ async def get_predictions(
     )
     to_dt = today + timedelta(days=days, hours=23, minutes=59, seconds=59)
     chs = _SessionCHSIWLS(session, station_id=station_id)
-    data = await chs.station_data(**{
-        "time-series-code": TIME_SERIES_PREDICTED,
-        "from": today,
-        "to": to_dt,
-    })
+    data = await chs.station_data(
+        **{
+            "time-series-code": TIME_SERIES_PREDICTED,
+            "from": today,
+            "to": to_dt,
+        }
+    )
     raw = [
         PredictionPoint(
             timestamp=datetime.fromisoformat(d["eventDate"].replace("Z", "+00:00")),

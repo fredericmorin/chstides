@@ -48,6 +48,13 @@ class ObservedDataCoordinator(DataUpdateCoordinator):
         try:
             points = await get_observed_water_level(self._session, self._station_id)
         except CHSApiError as err:
+            if err.status_code == 404:
+                _LOGGER.warning(
+                    "Station %s has no observed water level data (wlo); "
+                    "observed sensors will be unavailable.",
+                    self._station_id,
+                )
+                return {"latest": None, "phase": self.phase}
             raise UpdateFailed(f"CHS API error: {err}") from err
         if not points:
             raise UpdateFailed("No observed data returned from CHS API")
