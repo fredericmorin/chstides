@@ -4,10 +4,11 @@ dev:
 	@bash scripts/dev_instance.sh
 
 test:
-	pytest tests/ -v
+	uv run pytest tests/ -v
 
 lint:
-	ruff check custom_components/ tests/
+	uv run ruff check
 
 format:
-	ruff format custom_components/ tests/
+	uv run ruff format
+	uv run ruff check --fix

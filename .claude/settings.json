@@ -15,11 +15,10 @@
       "Bash(uv *)",
       "Bash(ty *)",
       "Bash(ruff *)",
-      "Bash(git add *)",
-      "Bash(git commit *)",
-      "Bash(git log *)",
-      "Bash(git show *)",
-      "Bash(python -m pytest *)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(.venv/bin/python -m pytest *)",
+      "Bash(.venv/bin/python -m ruff *)"
     ],
     "deny": [
       "Bash(rm *)",
