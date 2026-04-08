@@ -16,6 +16,7 @@ from custom_components.chstides.sensor import (
     TideForecastSensor,
     TidePhaseSensor,
     WaterLevelSensor,
+    WaterLevelSourceSensor,
 )
 
 
@@ -124,3 +125,46 @@ def test_next_high_tide_none_when_no_data(hass):
     coord.next_high = None
     sensor = NextHighTideSensor(coord, "Quebec City", "03580", "s001", "entry1")
     assert sensor.native_value is None
+
+
+def test_water_level_source_sensor_measured(observed_coord):
+    sensor = WaterLevelSourceSensor(
+        observed_coord, "Quebec City", "03580", "s001", "entry1"
+    )
+    assert sensor.native_value == "measured"
+
+
+def test_water_level_source_sensor_estimated(observed_coord):
+    observed_coord.latest = ObservedData(
+        station_id="s001",
+        timestamp=datetime(2026, 4, 7, 12, 0, tzinfo=UTC),
+        height_m=1.80,
+        time_series_code="wlp",
+        source="estimated",
+    )
+    sensor = WaterLevelSourceSensor(
+        observed_coord, "Quebec City", "03580", "s001", "entry1"
+    )
+    assert sensor.native_value == "estimated"
+
+
+def test_water_level_source_sensor_none_when_no_data(observed_coord):
+    observed_coord.latest = None
+    sensor = WaterLevelSourceSensor(
+        observed_coord, "Quebec City", "03580", "s001", "entry1"
+    )
+    assert sensor.native_value is None
+
+
+def test_water_level_source_sensor_unique_id(observed_coord):
+    sensor = WaterLevelSourceSensor(
+        observed_coord, "Quebec City", "03580", "s001", "entry1"
+    )
+    assert sensor.unique_id == "entry1_water_level_source"
+
+
+def test_water_level_source_sensor_name(observed_coord):
+    sensor = WaterLevelSourceSensor(
+        observed_coord, "Quebec City", "03580", "s001", "entry1"
+    )
+    assert sensor.name == "Quebec City Water Level Source"

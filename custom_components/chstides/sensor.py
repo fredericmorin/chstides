@@ -43,6 +43,7 @@ async def async_setup_entry(
         [
             WaterLevelSensor(observed, station_name, station_code, station_id, eid),
             TidePhaseSensor(observed, station_name, station_code, station_id, eid),
+            WaterLevelSourceSensor(observed, station_name, station_code, station_id, eid),
             NextHighTideSensor(
                 predictions, station_name, station_code, station_id, eid
             ),
@@ -115,6 +116,29 @@ class TidePhaseSensor(CoordinatorEntity[ObservedDataCoordinator], SensorEntity):
         if self.coordinator.latest is None:
             return {}
         return {"timestamp": self.coordinator.latest.timestamp.isoformat()}
+
+
+class WaterLevelSourceSensor(CoordinatorEntity[ObservedDataCoordinator], SensorEntity):
+    """Indicates whether the current water level reading is measured or estimated."""
+
+    def __init__(
+        self,
+        coordinator: ObservedDataCoordinator,
+        station_name: str,
+        station_code: str,
+        station_id: str,
+        entry_id: str,
+    ) -> None:
+        super().__init__(coordinator)
+        self._attr_name = f"{station_name} Water Level Source"
+        self._attr_unique_id = f"{entry_id}_water_level_source"
+        self._attr_device_info = _device_info(station_name, station_code)
+
+    @property
+    def native_value(self) -> str | None:
+        if self.coordinator.latest is None:
+            return None
+        return self.coordinator.latest.source
 
 
 class NextHighTideSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity):
