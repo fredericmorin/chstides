@@ -27,6 +27,42 @@ class _SessionCHSIWLS(CHS_IWLS):
     async def _set_station_data(self, data: dict) -> None:
         pass  # We create fresh instances per call; discard library-managed state.
 
+    async def stations(self, **kwargs: object) -> list[Any]:
+        """Override to guard against IndexError when a code filter returns no results."""
+        from pychs.const import ENDPOINT, ENDPOINT_STATIONS
+
+        params = ["code", "chs-region-code", "time-series-code"]
+        if self._station_code and kwargs.get("code") is None:
+            kwargs["code"] = self._station_code
+        qparams = self._validate_query_parameters(params, **kwargs)
+        url = ENDPOINT + ENDPOINT_STATIONS + self._construct_query_parameters(**qparams)
+        data = await self._async_get_data(url)
+        if not isinstance(data, list) or not data:
+            return data if isinstance(data, list) else []
+        if qparams.get("code") is not None:
+            await self._set_station_data(data[0])
+        return data
+
+
+async def get_stations(
+    session: aiohttp.ClientSession, code: str | None = None
+) -> list[Station]:
+    """Return all stations, or those matching station code."""
+    chs = _SessionCHSIWLS(session, station_code=code)
+    data = await chs.stations()
+    if not isinstance(data, list):
+        return []
+    return [
+        Station(
+            id=s["id"],
+            code=s["code"],
+            name=s["officialName"],
+            latitude=s["latitude"],
+            longitude=s["longitude"],
+        )
+        for s in data
+    ]
+
 
 class TidePhase:
     RISING = "Rising"

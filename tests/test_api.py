@@ -16,6 +16,7 @@ from custom_components.chstides.api import (
     derive_tide_phase,
     find_highs_lows,
     find_nearest_station,
+    get_stations,
 )
 
 
@@ -129,3 +130,66 @@ async def test_session_chs_iwls_returns_json(mock_aiohttp):
             "https://api-iwls.dfo-mpo.gc.ca/api/v1/stations"
         )
     assert data == [{"id": "s001"}]
+
+
+@pytest.mark.asyncio
+async def test_get_stations_returns_all_stations(mock_aiohttp):
+    mock_aiohttp.get(
+        "https://api-iwls.dfo-mpo.gc.ca/api/v1/stations",
+        payload=[
+            {
+                "id": "s001",
+                "code": "03580",
+                "officialName": "Quebec City",
+                "latitude": 46.81,
+                "longitude": -71.22,
+            }
+        ],
+    )
+    async with aiohttp.ClientSession() as session:
+        stations = await get_stations(session)
+    assert len(stations) == 1
+    assert stations[0].code == "03580"
+    assert stations[0].name == "Quebec City"
+
+
+@pytest.mark.asyncio
+async def test_get_stations_with_code_filter(mock_aiohttp):
+    mock_aiohttp.get(
+        re.compile(r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations\?code=03580"),
+        payload=[
+            {
+                "id": "s001",
+                "code": "03580",
+                "officialName": "Quebec City",
+                "latitude": 46.81,
+                "longitude": -71.22,
+            }
+        ],
+    )
+    async with aiohttp.ClientSession() as session:
+        stations = await get_stations(session, code="03580")
+    assert stations[0].code == "03580"
+
+
+@pytest.mark.asyncio
+async def test_get_stations_empty_returns_empty_list(mock_aiohttp):
+    mock_aiohttp.get(
+        re.compile(r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations\?code=NOPE"),
+        payload=[],
+    )
+    async with aiohttp.ClientSession() as session:
+        stations = await get_stations(session, code="NOPE")
+    assert stations == []
+
+
+@pytest.mark.asyncio
+async def test_get_stations_raises_on_error(mock_aiohttp):
+    mock_aiohttp.get(
+        "https://api-iwls.dfo-mpo.gc.ca/api/v1/stations",
+        status=500,
+    )
+    async with aiohttp.ClientSession() as session:
+        with pytest.raises(CHSApiError) as exc_info:
+            await get_stations(session)
+    assert exc_info.value.status_code == 500
