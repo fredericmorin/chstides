@@ -1,3 +1,27 @@
+[project]
+name = "chstides-wrapper"
+version = "1.0.0"
+description = "This is a wrapper project for Canadian Hydrographic Service Tides - a custom component for Home Assistant"
+authors = [{ name = "Frederic Morin", email = "frederic.morin.8@gmail.com" }]
+readme = "README.md"
+requires-python = " >= 3.14"
+dependencies = ["chstides==0.3.2"]
+
+[project.optional-dependencies]
+dev = [
+    "homeassistant>=2026",
+
+    "pytest>=9.0",
+    "pytest-cov >= 7.0",
+    "pytest-asyncio >= 0.20.3",
+    "pytest-homeassistant-custom-component >= 0.13.289",
+    "aioresponses>=0.7",
+    "colorlog==6.10.1",
+
+    "coverage>=7.0",
+    "ruff>=0.15",
+]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
