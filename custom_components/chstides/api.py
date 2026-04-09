@@ -5,13 +5,27 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
-import aiohttp
 from pychs import CHS_IWLS
+from pychs.const import ENDPOINT, ENDPOINT_STATIONS
+
+from .const import (
+    HTTP_ERROR_STATUS_MIN,
+    TIME_SERIES_OBSERVED,
+    TIME_SERIES_PREDICTED,
+    TIME_SERIES_PREDICTED_CONTINUOUS,
+)
+
+if TYPE_CHECKING:
+    import aiohttp
+
+_MIN_PHASE_POINTS = 2
 
 
 class TidePhase:
+    """Tide phase constants."""
+
     RISING = "Rising"
     FALLING = "Falling"
     HIGH = "High"
@@ -19,13 +33,24 @@ class TidePhase:
 
 
 class CHSApiError(Exception):
+    """Raised when the CHS API returns an error response."""
+
     def __init__(self, message: str, status_code: int | None = None) -> None:
+        """Initialise with a message and optional HTTP status code."""
         super().__init__(message)
         self.status_code = status_code
+
+    @classmethod
+    def from_status(cls, status: int) -> CHSApiError:
+        """Create a CHSApiError from an HTTP status code."""
+        msg = f"CHS API returned {status}"
+        return cls(msg, status)
 
 
 @dataclass
 class Station:
+    """A CHS tide station."""
+
     id: str
     code: str
     name: str
@@ -35,6 +60,8 @@ class Station:
 
 @dataclass
 class ObservedData:
+    """A single observed (or estimated) water level reading."""
+
     station_id: str
     timestamp: datetime
     height_m: float
@@ -44,6 +71,8 @@ class ObservedData:
 
 @dataclass
 class PredictionPoint:
+    """A single predicted tide event (HIGH or LOW)."""
+
     timestamp: datetime
     height_m: float
     type: Literal["HIGH", "LOW"]
@@ -53,22 +82,22 @@ class _SessionCHSIWLS(CHS_IWLS):
     """CHS_IWLS subclass that uses an injected aiohttp session."""
 
     def __init__(self, session: aiohttp.ClientSession, **kwargs: object) -> None:
+        """Initialise with an externally managed aiohttp session."""
         super().__init__(**kwargs)
         self._ha_session = session
 
     async def _async_get_data(self, url: str) -> Any:
+        """Fetch JSON from *url*, raising CHSApiError on HTTP errors."""
         async with self._ha_session.get(url) as resp:
-            if resp.status >= 400:
-                raise CHSApiError(f"CHS API returned {resp.status}", resp.status)
+            if resp.status >= HTTP_ERROR_STATUS_MIN:
+                raise CHSApiError.from_status(resp.status)
             return await resp.json()
 
     async def _set_station_data(self, data: dict) -> None:
-        pass  # We create fresh instances per call; discard library-managed state.
+        """No-op: we create fresh instances per call."""
 
-    async def stations(self, **kwargs: object) -> list[Any]:
-        """Override to guard against IndexError when a code filter returns no results."""
-        from pychs.const import ENDPOINT, ENDPOINT_STATIONS
-
+    async def stations(self, **kwargs: Any) -> list[Any]:
+        """Guard against IndexError when a code filter returns no results."""
         params = ["code", "chs-region-code", "time-series-code"]
         if self._station_code and kwargs.get("code") is None:
             kwargs["code"] = self._station_code
@@ -106,8 +135,6 @@ async def get_observed_water_level(
     session: aiohttp.ClientSession, station_id: str
 ) -> list[ObservedData]:
     """Return the last 30 minutes of observed water level readings."""
-    from .const import TIME_SERIES_OBSERVED
-
     now = datetime.now(UTC).replace(tzinfo=None)
     from_dt = now - timedelta(minutes=30)
     chs = _SessionCHSIWLS(session, station_id=station_id)
@@ -121,7 +148,7 @@ async def get_observed_water_level(
     return [
         ObservedData(
             station_id=station_id,
-            timestamp=datetime.fromisoformat(d["eventDate"].replace("Z", "+00:00")),
+            timestamp=datetime.fromisoformat(d["eventDate"]),
             height_m=float(d["value"]),
             time_series_code=TIME_SERIES_OBSERVED,
         )
@@ -137,8 +164,6 @@ async def get_predicted_water_level(
 
     Returns ObservedData with source='estimated'.
     """
-    from .const import TIME_SERIES_PREDICTED_CONTINUOUS
-
     now = datetime.now(UTC).replace(tzinfo=None)
     from_dt = now - timedelta(minutes=30)
     to_dt = now
@@ -153,7 +178,7 @@ async def get_predicted_water_level(
     return [
         ObservedData(
             station_id=station_id,
-            timestamp=datetime.fromisoformat(d["eventDate"].replace("Z", "+00:00")),
+            timestamp=datetime.fromisoformat(d["eventDate"]),
             height_m=float(d["value"]),
             time_series_code=TIME_SERIES_PREDICTED_CONTINUOUS,
             source="estimated",
@@ -166,8 +191,6 @@ async def get_predictions(
     session: aiohttp.ClientSession, station_id: str, days: int
 ) -> list[PredictionPoint]:
     """Return HIGH/LOW tide events for the next N days using wlp-hilo."""
-    from .const import TIME_SERIES_PREDICTED
-
     # microsecond=1 ensures the library's isoformat()[:-7] strips correctly
     today = datetime.now(UTC).replace(
         hour=0, minute=0, second=0, microsecond=1, tzinfo=None
@@ -183,7 +206,7 @@ async def get_predictions(
     )
     raw = [
         PredictionPoint(
-            timestamp=datetime.fromisoformat(d["eventDate"].replace("Z", "+00:00")),
+            timestamp=datetime.fromisoformat(d["eventDate"]),
             height_m=float(d["value"]),
             type="HIGH",
         )
@@ -212,7 +235,7 @@ def _classify_hilo(points: list[PredictionPoint]) -> list[PredictionPoint]:
 
 def derive_tide_phase(recent_points: list[ObservedData]) -> str:
     """Derive tide phase from the trend of recent observed water level points."""
-    if len(recent_points) < 2:
+    if len(recent_points) < _MIN_PHASE_POINTS:
         return TidePhase.RISING
     diff = recent_points[-1].height_m - recent_points[-2].height_m
     return TidePhase.RISING if diff >= 0 else TidePhase.FALLING

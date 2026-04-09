@@ -2,18 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import CONF_STATION_CODE, CONF_STATION_ID, CONF_STATION_NAME, DOMAIN
 from .coordinator import ObservedDataCoordinator, PredictionCoordinator
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 
 def _device_info(station_name: str, station_code: str) -> DeviceInfo:
@@ -30,6 +32,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
+    """Set up CHSTides sensor entities from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
     observed = data["observed"]
     predictions = data["predictions"]
@@ -42,17 +45,11 @@ async def async_setup_entry(
     async_add_entities(
         [
             WaterLevelSensor(observed, station_name, station_code, station_id, eid),
-            TidePhaseSensor(observed, station_name, station_code, station_id, eid),
-            WaterLevelSourceSensor(
-                observed, station_name, station_code, station_id, eid
-            ),
-            NextHighTideSensor(
-                predictions, station_name, station_code, station_id, eid
-            ),
-            NextLowTideSensor(predictions, station_name, station_code, station_id, eid),
-            TideForecastSensor(
-                predictions, station_name, station_code, station_id, eid
-            ),
+            TidePhaseSensor(observed, station_name, station_code, eid),
+            WaterLevelSourceSensor(observed, station_name, station_code, eid),
+            NextHighTideSensor(predictions, station_name, station_code, eid),
+            NextLowTideSensor(predictions, station_name, station_code, eid),
+            TideForecastSensor(predictions, station_name, station_code, eid),
         ]
     )
 
@@ -71,6 +68,7 @@ class WaterLevelSensor(CoordinatorEntity[ObservedDataCoordinator], SensorEntity)
         station_id: str,
         entry_id: str,
     ) -> None:
+        """Initialise with coordinator and station identifiers."""
         super().__init__(coordinator)
         self._station_id = station_id
         self._attr_name = f"{station_name} Water Level"
@@ -79,12 +77,14 @@ class WaterLevelSensor(CoordinatorEntity[ObservedDataCoordinator], SensorEntity)
 
     @property
     def native_value(self) -> float | None:
+        """Return the current water level in metres."""
         if self.coordinator.latest is None:
             return None
         return self.coordinator.latest.height_m
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return station ID and timestamp of the latest reading."""
         if self.coordinator.latest is None:
             return {}
         return {
@@ -101,9 +101,9 @@ class TidePhaseSensor(CoordinatorEntity[ObservedDataCoordinator], SensorEntity):
         coordinator: ObservedDataCoordinator,
         station_name: str,
         station_code: str,
-        station_id: str,
         entry_id: str,
     ) -> None:
+        """Initialise with coordinator and station identifiers."""
         super().__init__(coordinator)
         self._attr_name = f"{station_name} Tide Phase"
         self._attr_unique_id = f"{entry_id}_tide_phase"
@@ -111,10 +111,12 @@ class TidePhaseSensor(CoordinatorEntity[ObservedDataCoordinator], SensorEntity):
 
     @property
     def native_value(self) -> str | None:
+        """Return the current tide phase string."""
         return self.coordinator.phase
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return timestamp of the latest reading."""
         if self.coordinator.latest is None:
             return {}
         return {"timestamp": self.coordinator.latest.timestamp.isoformat()}
@@ -128,9 +130,9 @@ class WaterLevelSourceSensor(CoordinatorEntity[ObservedDataCoordinator], SensorE
         coordinator: ObservedDataCoordinator,
         station_name: str,
         station_code: str,
-        station_id: str,
         entry_id: str,
     ) -> None:
+        """Initialise with coordinator and station identifiers."""
         super().__init__(coordinator)
         self._attr_name = f"{station_name} Water Level Source"
         self._attr_unique_id = f"{entry_id}_water_level_source"
@@ -138,6 +140,7 @@ class WaterLevelSourceSensor(CoordinatorEntity[ObservedDataCoordinator], SensorE
 
     @property
     def native_value(self) -> str | None:
+        """Return 'measured' or 'estimated' depending on the data source."""
         if self.coordinator.latest is None:
             return None
         return self.coordinator.latest.source
@@ -151,9 +154,9 @@ class NextHighTideSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity)
         coordinator: PredictionCoordinator,
         station_name: str,
         station_code: str,
-        station_id: str,
         entry_id: str,
     ) -> None:
+        """Initialise with coordinator and station identifiers."""
         super().__init__(coordinator)
         self._attr_name = f"{station_name} Next High Tide"
         self._attr_unique_id = f"{entry_id}_next_high_tide"
@@ -161,12 +164,14 @@ class NextHighTideSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity)
 
     @property
     def native_value(self) -> str | None:
+        """Return the local time of the next high tide as HH:MM."""
         if self.coordinator.next_high is None:
             return None
         return dt_util.as_local(self.coordinator.next_high.timestamp).strftime("%H:%M")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return height and ISO datetime of the next high tide."""
         if self.coordinator.next_high is None:
             return {}
         return {
@@ -183,9 +188,9 @@ class NextLowTideSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity):
         coordinator: PredictionCoordinator,
         station_name: str,
         station_code: str,
-        station_id: str,
         entry_id: str,
     ) -> None:
+        """Initialise with coordinator and station identifiers."""
         super().__init__(coordinator)
         self._attr_name = f"{station_name} Next Low Tide"
         self._attr_unique_id = f"{entry_id}_next_low_tide"
@@ -193,12 +198,14 @@ class NextLowTideSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity):
 
     @property
     def native_value(self) -> str | None:
+        """Return the local time of the next low tide as HH:MM."""
         if self.coordinator.next_low is None:
             return None
         return dt_util.as_local(self.coordinator.next_low.timestamp).strftime("%H:%M")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return height and ISO datetime of the next low tide."""
         if self.coordinator.next_low is None:
             return {}
         return {
@@ -217,9 +224,9 @@ class TideForecastSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity)
         coordinator: PredictionCoordinator,
         station_name: str,
         station_code: str,
-        station_id: str,
         entry_id: str,
     ) -> None:
+        """Initialise with coordinator and station identifiers."""
         super().__init__(coordinator)
         self._attr_name = f"{station_name} Tide Forecast"
         self._attr_unique_id = f"{entry_id}_tide_forecast"
@@ -227,10 +234,12 @@ class TideForecastSensor(CoordinatorEntity[PredictionCoordinator], SensorEntity)
 
     @property
     def native_value(self) -> int:
+        """Return the total number of forecast tide events."""
         return len(self.coordinator.forecast)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the full list of forecast tide events."""
         return {
             "forecast": [
                 {

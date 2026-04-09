@@ -1,3 +1,8 @@
+"""Constants for the CHSTides integration."""
+
+HTTP_STATUS_NOT_FOUND = 404
+HTTP_ERROR_STATUS_MIN = 400
+
 DOMAIN = "chstides"
 
 TIME_SERIES_OBSERVED = "wlo"

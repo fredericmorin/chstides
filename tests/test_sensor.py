@@ -54,12 +54,12 @@ def test_water_level_sensor_none_when_no_data(observed_coord):
 
 
 def test_tide_phase_sensor_state(observed_coord):
-    sensor = TidePhaseSensor(observed_coord, "Quebec City", "03580", "s001", "entry1")
+    sensor = TidePhaseSensor(observed_coord, "Quebec City", "03580", "entry1")
     assert sensor.native_value == TidePhase.RISING
 
 
 def test_tide_phase_sensor_unique_id(observed_coord):
-    sensor = TidePhaseSensor(observed_coord, "Quebec City", "03580", "s001", "entry1")
+    sensor = TidePhaseSensor(observed_coord, "Quebec City", "03580", "entry1")
     assert sensor.unique_id == "entry1_tide_phase"
 
 
@@ -81,14 +81,14 @@ def prediction_coord(hass):
 
 def test_next_high_tide_sensor_state(prediction_coord):
     sensor = NextHighTideSensor(
-        prediction_coord, "Quebec City", "03580", "s001", "entry1"
+        prediction_coord, "Quebec City", "03580", "entry1"
     )
     assert "14:30" in sensor.native_value
 
 
 def test_next_high_tide_sensor_attributes(prediction_coord):
     sensor = NextHighTideSensor(
-        prediction_coord, "Quebec City", "03580", "s001", "entry1"
+        prediction_coord, "Quebec City", "03580", "entry1"
     )
     assert sensor.extra_state_attributes["height_m"] == 3.1
     assert "datetime_iso" in sensor.extra_state_attributes
@@ -96,21 +96,21 @@ def test_next_high_tide_sensor_attributes(prediction_coord):
 
 def test_next_low_tide_sensor_state(prediction_coord):
     sensor = NextLowTideSensor(
-        prediction_coord, "Quebec City", "03580", "s001", "entry1"
+        prediction_coord, "Quebec City", "03580", "entry1"
     )
     assert "20:00" in sensor.native_value
 
 
 def test_tide_forecast_sensor_state_is_count(prediction_coord):
     sensor = TideForecastSensor(
-        prediction_coord, "Quebec City", "03580", "s001", "entry1"
+        prediction_coord, "Quebec City", "03580", "entry1"
     )
     assert sensor.native_value == 2
 
 
 def test_tide_forecast_sensor_forecast_attribute(prediction_coord):
     sensor = TideForecastSensor(
-        prediction_coord, "Quebec City", "03580", "s001", "entry1"
+        prediction_coord, "Quebec City", "03580", "entry1"
     )
     forecast = sensor.extra_state_attributes["forecast"]
     assert len(forecast) == 2
@@ -123,13 +123,13 @@ def test_next_high_tide_none_when_no_data(hass):
     coord = MagicMock(spec=PredictionCoordinator)
     coord.hass = hass
     coord.next_high = None
-    sensor = NextHighTideSensor(coord, "Quebec City", "03580", "s001", "entry1")
+    sensor = NextHighTideSensor(coord, "Quebec City", "03580", "entry1")
     assert sensor.native_value is None
 
 
 def test_water_level_source_sensor_measured(observed_coord):
     sensor = WaterLevelSourceSensor(
-        observed_coord, "Quebec City", "03580", "s001", "entry1"
+        observed_coord, "Quebec City", "03580", "entry1"
     )
     assert sensor.native_value == "measured"
 
@@ -143,7 +143,7 @@ def test_water_level_source_sensor_estimated(observed_coord):
         source="estimated",
     )
     sensor = WaterLevelSourceSensor(
-        observed_coord, "Quebec City", "03580", "s001", "entry1"
+        observed_coord, "Quebec City", "03580", "entry1"
     )
     assert sensor.native_value == "estimated"
 
@@ -151,20 +151,20 @@ def test_water_level_source_sensor_estimated(observed_coord):
 def test_water_level_source_sensor_none_when_no_data(observed_coord):
     observed_coord.latest = None
     sensor = WaterLevelSourceSensor(
-        observed_coord, "Quebec City", "03580", "s001", "entry1"
+        observed_coord, "Quebec City", "03580", "entry1"
     )
     assert sensor.native_value is None
 
 
 def test_water_level_source_sensor_unique_id(observed_coord):
     sensor = WaterLevelSourceSensor(
-        observed_coord, "Quebec City", "03580", "s001", "entry1"
+        observed_coord, "Quebec City", "03580", "entry1"
     )
     assert sensor.unique_id == "entry1_water_level_source"
 
 
 def test_water_level_source_sensor_name(observed_coord):
     sensor = WaterLevelSourceSensor(
-        observed_coord, "Quebec City", "03580", "s001", "entry1"
+        observed_coord, "Quebec City", "03580", "entry1"
     )
     assert sensor.name == "Quebec City Water Level Source"

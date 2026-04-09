@@ -60,15 +60,18 @@ class CHSTidesConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     def __init__(self) -> None:
+        """Initialise flow state."""
         self._station_id: str | None = None
         self._station_code: str | None = None
         self._station_name: str | None = None
         self._nearest_hint: str | None = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> Any:
+        """Handle the initial step."""
         return await self.async_step_station(user_input)
 
     async def async_step_station(self, user_input: dict[str, Any] | None = None) -> Any:
+        """Handle the station selection step."""
         errors: dict[str, str] = {}
         session = async_get_clientsession(self.hass)
 
@@ -128,6 +131,7 @@ class CHSTidesConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_options(self, user_input: dict[str, Any] | None = None) -> Any:
+        """Handle the polling interval options step."""
         if user_input is not None:
             return self.async_create_entry(
                 title=self._station_name,
@@ -145,6 +149,7 @@ class CHSTidesConfigFlow(ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Return the options flow handler."""
         return CHSTidesOptionsFlow(config_entry)
 
 
@@ -152,9 +157,11 @@ class CHSTidesOptionsFlow(OptionsFlow):
     """Handle CHSTides options."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:
+        """Initialise with the existing config entry."""
         self._config_entry = config_entry
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> Any:
+        """Handle the options step."""
         if user_input is not None:
             return self.async_create_entry(
                 title="",
