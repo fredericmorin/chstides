@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -ex
+
+cd "$(dirname "$0")/.."
+
+# uv run pytest --durations=10 --cov-report term-missing --cov=custom_components.chstides --cov-fail-under=100 "$@"
+uv run pytest --durations=10 --cov-report term-missing --cov=custom_components.chstides "$@"
