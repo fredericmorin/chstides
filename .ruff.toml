@@ -32,7 +32,6 @@ max-complexity = 25
     "D102",     # method docstrings not required in tests
     "D103",     # function docstrings not required in tests
     "D104",     # package docstrings not required in tests
-    "PLC0415",  # local imports are acceptable in test helpers
     "PLR2004",  # magic values are expected in assertions
     "S101",     # assert is the standard pytest assertion mechanism
     "SLF001",   # accessing private members is necessary for unit tests

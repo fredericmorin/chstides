@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import aiohttp
@@ -83,8 +83,6 @@ async def test_observed_coordinator_raises_on_empty_data(
 async def test_prediction_coordinator_sets_next_high_and_low(
     hass: HomeAssistant, mock_session: AsyncMock, now: datetime
 ) -> None:
-    from datetime import timedelta
-
     future_high = now + timedelta(hours=2)
     future_low = now + timedelta(hours=6)
     with patch(
@@ -108,8 +106,6 @@ async def test_prediction_coordinator_sets_next_high_and_low(
 async def test_prediction_coordinator_keeps_stale_on_error(
     hass: HomeAssistant, mock_session: AsyncMock, now: datetime
 ) -> None:
-    from datetime import timedelta
-
     future = now + timedelta(hours=2)
     first_call = AsyncMock(return_value=[PredictionPoint(future, 3.1, "HIGH")])
     second_call = AsyncMock(side_effect=CHSApiError("timeout", None))
