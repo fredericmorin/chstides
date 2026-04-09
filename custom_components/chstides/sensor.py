@@ -80,7 +80,7 @@ class WaterLevelSensor(CoordinatorEntity[ObservedDataCoordinator], SensorEntity)
         """Return the current water level in metres."""
         if self.coordinator.latest is None:
             return None
-        return self.coordinator.latest.height_m
+        return round(self.coordinator.latest.height_m, 1)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
