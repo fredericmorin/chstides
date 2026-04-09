@@ -26,8 +26,6 @@ max-complexity = 25
 
 [lint.per-file-ignores]
 "tests/**" = [
-    "ANN001",   # type annotations not required in tests
-    "ANN201",   # return type annotations not required in tests
     "ARG001",   # unused arguments are common with fixtures
     "D100",     # module docstrings not required in tests
     "D101",     # class docstrings not required in tests

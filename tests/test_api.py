@@ -1,7 +1,13 @@
+from __future__ import annotations
+
 import re
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 import aiohttp
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 import pytest
 from aioresponses import aioresponses
 
@@ -20,7 +26,7 @@ from custom_components.chstides.api import (
 )
 
 
-def test_station_dataclass():
+def test_station_dataclass() -> None:
     s = Station(
         id="abc", code="03580", name="Quebec City", latitude=46.81, longitude=-71.22
     )
@@ -29,7 +35,7 @@ def test_station_dataclass():
     assert s.latitude == 46.81
 
 
-def test_find_nearest_station_returns_closest():
+def test_find_nearest_station_returns_closest() -> None:
     stations = [
         Station("1", "A", "Far", 60.0, -80.0),
         Station("2", "B", "Near", 45.5, -73.6),
@@ -39,13 +45,13 @@ def test_find_nearest_station_returns_closest():
     assert result.code == "B"
 
 
-def test_find_nearest_station_single():
+def test_find_nearest_station_single() -> None:
     stations = [Station("1", "A", "Only", 46.0, -72.0)]
     result = find_nearest_station(stations, 45.0, -71.0)
     assert result.code == "A"
 
 
-def test_chs_api_error_stores_status():
+def test_chs_api_error_stores_status() -> None:
     err = CHSApiError("not found", 404)
     assert err.status_code == 404
     assert "not found" in str(err)
@@ -55,30 +61,32 @@ def _obs(height: float) -> ObservedData:
     return ObservedData("s1", datetime.now(UTC), height, "wlo")
 
 
-def test_derive_tide_phase_rising():
+def test_derive_tide_phase_rising() -> None:
     assert derive_tide_phase([_obs(1.0), _obs(1.5)]) == TidePhase.RISING
 
 
-def test_derive_tide_phase_falling():
+def test_derive_tide_phase_falling() -> None:
     assert derive_tide_phase([_obs(1.5), _obs(1.0)]) == TidePhase.FALLING
 
 
-def test_derive_tide_phase_single_point_defaults_rising():
+def test_derive_tide_phase_single_point_defaults_rising() -> None:
     assert derive_tide_phase([_obs(1.0)]) == TidePhase.RISING
 
 
-def test_derive_tide_phase_empty_defaults_rising():
+def test_derive_tide_phase_empty_defaults_rising() -> None:
     assert derive_tide_phase([]) == TidePhase.RISING
 
 
 @pytest.fixture
-def mock_aiohttp():
+def mock_aiohttp() -> Generator[aioresponses]:
     with aioresponses() as m:
         yield m
 
 
 @pytest.mark.asyncio
-async def test_session_chs_iwls_raises_on_http_error(mock_aiohttp):
+async def test_session_chs_iwls_raises_on_http_error(
+    mock_aiohttp: aioresponses,
+) -> None:
     mock_aiohttp.get(
         "https://api-iwls.dfo-mpo.gc.ca/api/v1/stations",
         status=503,
@@ -93,7 +101,7 @@ async def test_session_chs_iwls_raises_on_http_error(mock_aiohttp):
 
 
 @pytest.mark.asyncio
-async def test_session_chs_iwls_returns_json(mock_aiohttp):
+async def test_session_chs_iwls_returns_json(mock_aiohttp: aioresponses) -> None:
     mock_aiohttp.get(
         "https://api-iwls.dfo-mpo.gc.ca/api/v1/stations",
         payload=[{"id": "s001"}],
@@ -107,7 +115,7 @@ async def test_session_chs_iwls_returns_json(mock_aiohttp):
 
 
 @pytest.mark.asyncio
-async def test_get_stations_returns_all_stations(mock_aiohttp):
+async def test_get_stations_returns_all_stations(mock_aiohttp: aioresponses) -> None:
     mock_aiohttp.get(
         "https://api-iwls.dfo-mpo.gc.ca/api/v1/stations",
         payload=[
@@ -128,7 +136,7 @@ async def test_get_stations_returns_all_stations(mock_aiohttp):
 
 
 @pytest.mark.asyncio
-async def test_get_stations_with_code_filter(mock_aiohttp):
+async def test_get_stations_with_code_filter(mock_aiohttp: aioresponses) -> None:
     mock_aiohttp.get(
         re.compile(r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations\?code=03580"),
         payload=[
@@ -147,7 +155,9 @@ async def test_get_stations_with_code_filter(mock_aiohttp):
 
 
 @pytest.mark.asyncio
-async def test_get_stations_empty_returns_empty_list(mock_aiohttp):
+async def test_get_stations_empty_returns_empty_list(
+    mock_aiohttp: aioresponses,
+) -> None:
     mock_aiohttp.get(
         re.compile(r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations\?code=NOPE"),
         payload=[],
@@ -158,7 +168,7 @@ async def test_get_stations_empty_returns_empty_list(mock_aiohttp):
 
 
 @pytest.mark.asyncio
-async def test_get_stations_raises_on_error(mock_aiohttp):
+async def test_get_stations_raises_on_error(mock_aiohttp: aioresponses) -> None:
     mock_aiohttp.get(
         "https://api-iwls.dfo-mpo.gc.ca/api/v1/stations",
         status=500,
@@ -170,7 +180,9 @@ async def test_get_stations_raises_on_error(mock_aiohttp):
 
 
 @pytest.mark.asyncio
-async def test_get_observed_water_level_returns_observed_data(mock_aiohttp):
+async def test_get_observed_water_level_returns_observed_data(
+    mock_aiohttp: aioresponses,
+) -> None:
     mock_aiohttp.get(
         re.compile(
             r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data.*time-series-code=wlo"
@@ -192,7 +204,9 @@ async def test_get_observed_water_level_returns_observed_data(mock_aiohttp):
 
 
 @pytest.mark.asyncio
-async def test_get_observed_water_level_raises_on_error(mock_aiohttp):
+async def test_get_observed_water_level_raises_on_error(
+    mock_aiohttp: aioresponses,
+) -> None:
     mock_aiohttp.get(
         re.compile(r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data"),
         status=503,
@@ -203,7 +217,7 @@ async def test_get_observed_water_level_raises_on_error(mock_aiohttp):
 
 
 @pytest.mark.asyncio
-async def test_get_predictions_classifies_high_low(mock_aiohttp):
+async def test_get_predictions_classifies_high_low(mock_aiohttp: aioresponses) -> None:
     mock_aiohttp.get(
         re.compile(
             r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data.*time-series-code=wlp-hilo"
@@ -226,7 +240,9 @@ async def test_get_predictions_classifies_high_low(mock_aiohttp):
 
 
 @pytest.mark.asyncio
-async def test_get_predictions_single_event_defaults_high(mock_aiohttp):
+async def test_get_predictions_single_event_defaults_high(
+    mock_aiohttp: aioresponses,
+) -> None:
     mock_aiohttp.get(
         re.compile(r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data"),
         payload=[
@@ -240,7 +256,7 @@ async def test_get_predictions_single_event_defaults_high(mock_aiohttp):
 
 
 @pytest.mark.asyncio
-async def test_get_predictions_empty_returns_empty(mock_aiohttp):
+async def test_get_predictions_empty_returns_empty(mock_aiohttp: aioresponses) -> None:
     mock_aiohttp.get(
         re.compile(r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data"),
         payload=[],
@@ -251,7 +267,7 @@ async def test_get_predictions_empty_returns_empty(mock_aiohttp):
 
 
 @pytest.mark.asyncio
-async def test_get_predictions_raises_on_error(mock_aiohttp):
+async def test_get_predictions_raises_on_error(mock_aiohttp: aioresponses) -> None:
     mock_aiohttp.get(
         re.compile(r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data"),
         status=500,
@@ -262,7 +278,9 @@ async def test_get_predictions_raises_on_error(mock_aiohttp):
 
 
 @pytest.mark.asyncio
-async def test_get_predicted_water_level_returns_estimated_data(mock_aiohttp):
+async def test_get_predicted_water_level_returns_estimated_data(
+    mock_aiohttp: aioresponses,
+) -> None:
     mock_aiohttp.get(
         re.compile(
             r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data.*time-series-code=wlp"
@@ -284,7 +302,9 @@ async def test_get_predicted_water_level_returns_estimated_data(mock_aiohttp):
 
 
 @pytest.mark.asyncio
-async def test_get_predicted_water_level_raises_on_error(mock_aiohttp):
+async def test_get_predicted_water_level_raises_on_error(
+    mock_aiohttp: aioresponses,
+) -> None:
     mock_aiohttp.get(
         re.compile(
             r"https://api-iwls\.dfo-mpo\.gc\.ca/api/v1/stations/s001/data.*time-series-code=wlp"

@@ -1,6 +1,12 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -14,7 +20,7 @@ MOCK_STATION = Station(
 
 
 @pytest.fixture(autouse=True)
-def mock_client_setup():
+def mock_client_setup() -> Generator[AsyncMock]:
     with patch(
         "custom_components.chstides.config_flow.get_stations",
         new_callable=AsyncMock,
@@ -24,7 +30,7 @@ def mock_client_setup():
 
 
 @pytest.mark.asyncio
-async def test_step_station_shows_form(hass: HomeAssistant):
+async def test_step_station_shows_form(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
@@ -34,8 +40,8 @@ async def test_step_station_shows_form(hass: HomeAssistant):
 
 @pytest.mark.asyncio
 async def test_step_station_with_valid_code_proceeds(
-    hass: HomeAssistant, mock_client_setup
-):
+    hass: HomeAssistant, mock_client_setup: AsyncMock
+) -> None:
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
@@ -49,8 +55,8 @@ async def test_step_station_with_valid_code_proceeds(
 
 @pytest.mark.asyncio
 async def test_step_station_with_invalid_code_shows_error(
-    hass: HomeAssistant, mock_client_setup
-):
+    hass: HomeAssistant, mock_client_setup: AsyncMock
+) -> None:
     mock_client_setup.return_value = []
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -65,8 +71,8 @@ async def test_step_station_with_invalid_code_shows_error(
 
 @pytest.mark.asyncio
 async def test_step_station_auto_detect_prefills_nearest(
-    hass: HomeAssistant, mock_client_setup
-):
+    hass: HomeAssistant, mock_client_setup: AsyncMock
+) -> None:
     hass.config.latitude = 46.8
     hass.config.longitude = -71.2
     result = await hass.config_entries.flow.async_init(

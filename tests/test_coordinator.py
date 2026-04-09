@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import aiohttp
 import pytest
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.chstides.api import (
@@ -18,22 +19,24 @@ from custom_components.chstides.coordinator import (
 
 
 @pytest.fixture
-def hass(hass):
+def hass(hass: HomeAssistant) -> HomeAssistant:
     return hass
 
 
 @pytest.fixture
-def mock_session():
+def mock_session() -> AsyncMock:
     return AsyncMock(spec=aiohttp.ClientSession)
 
 
 @pytest.fixture
-def now():
+def now() -> datetime:
     return datetime.now(UTC)
 
 
 @pytest.mark.asyncio
-async def test_observed_coordinator_stores_latest_and_phase(hass, mock_session, now):
+async def test_observed_coordinator_stores_latest_and_phase(
+    hass: HomeAssistant, mock_session: AsyncMock, now: datetime
+) -> None:
     with patch(
         "custom_components.chstides.coordinator.get_observed_water_level",
         new=AsyncMock(
@@ -51,7 +54,9 @@ async def test_observed_coordinator_stores_latest_and_phase(hass, mock_session, 
 
 
 @pytest.mark.asyncio
-async def test_observed_coordinator_raises_on_api_error(hass, mock_session):
+async def test_observed_coordinator_raises_on_api_error(
+    hass: HomeAssistant, mock_session: AsyncMock
+) -> None:
     with patch(
         "custom_components.chstides.coordinator.get_observed_water_level",
         new=AsyncMock(side_effect=CHSApiError("timeout", None)),
@@ -62,7 +67,9 @@ async def test_observed_coordinator_raises_on_api_error(hass, mock_session):
 
 
 @pytest.mark.asyncio
-async def test_observed_coordinator_raises_on_empty_data(hass, mock_session):
+async def test_observed_coordinator_raises_on_empty_data(
+    hass: HomeAssistant, mock_session: AsyncMock
+) -> None:
     with patch(
         "custom_components.chstides.coordinator.get_observed_water_level",
         new=AsyncMock(return_value=[]),
@@ -73,7 +80,9 @@ async def test_observed_coordinator_raises_on_empty_data(hass, mock_session):
 
 
 @pytest.mark.asyncio
-async def test_prediction_coordinator_sets_next_high_and_low(hass, mock_session, now):
+async def test_prediction_coordinator_sets_next_high_and_low(
+    hass: HomeAssistant, mock_session: AsyncMock, now: datetime
+) -> None:
     from datetime import timedelta
 
     future_high = now + timedelta(hours=2)
@@ -96,7 +105,9 @@ async def test_prediction_coordinator_sets_next_high_and_low(hass, mock_session,
 
 
 @pytest.mark.asyncio
-async def test_prediction_coordinator_keeps_stale_on_error(hass, mock_session, now):
+async def test_prediction_coordinator_keeps_stale_on_error(
+    hass: HomeAssistant, mock_session: AsyncMock, now: datetime
+) -> None:
     from datetime import timedelta
 
     future = now + timedelta(hours=2)
@@ -120,7 +131,9 @@ async def test_prediction_coordinator_keeps_stale_on_error(hass, mock_session, n
 
 
 @pytest.mark.asyncio
-async def test_observed_coordinator_falls_back_to_wlp_on_404(hass, mock_session, now):
+async def test_observed_coordinator_falls_back_to_wlp_on_404(
+    hass: HomeAssistant, mock_session: AsyncMock, now: datetime
+) -> None:
     predicted_points = [
         ObservedData("s1", now, 1.8, "wlp", source="estimated"),
         ObservedData("s1", now, 1.85, "wlp", source="estimated"),
@@ -145,8 +158,8 @@ async def test_observed_coordinator_falls_back_to_wlp_on_404(hass, mock_session,
 
 @pytest.mark.asyncio
 async def test_observed_coordinator_returns_none_when_wlp_also_fails(
-    hass, mock_session
-):
+    hass: HomeAssistant, mock_session: AsyncMock
+) -> None:
     with (
         patch(
             "custom_components.chstides.coordinator.get_observed_water_level",
@@ -164,7 +177,9 @@ async def test_observed_coordinator_returns_none_when_wlp_also_fails(
 
 
 @pytest.mark.asyncio
-async def test_observed_coordinator_returns_none_when_wlp_empty(hass, mock_session):
+async def test_observed_coordinator_returns_none_when_wlp_empty(
+    hass: HomeAssistant, mock_session: AsyncMock
+) -> None:
     with (
         patch(
             "custom_components.chstides.coordinator.get_observed_water_level",
