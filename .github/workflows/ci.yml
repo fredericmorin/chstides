@@ -1,0 +1,68 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    branches:
+      - "main"
+
+permissions: {}
+
+jobs:
+  ruff:
+    name: "Ruff"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v8.0.0
+        with:
+          python-version: "3.14"
+          activate-environment: true
+      - name: Install project with all extras
+        run: uv sync --extra dev
+      - name: Lint
+        run: ruff check .
+      - name: Format
+        run: ruff format . --check
+
+  tests:
+    runs-on: "ubuntu-latest"
+    name: Run tests
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v8.0.0
+        with:
+          python-version: "3.14"
+          activate-environment: true
+      - name: Install project with all extras
+        run: uv sync --extra dev
+      - name: Run tests
+        run: scripts/test
+
+  hassfest:
+    name: Hassfest validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Run hassfest validation
+        uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
+          # Remove 'ignore' once brand images are added
+          # https://developers.home-assistant.io/docs/creating_integration_file_structure#local-brand-images-for-custom-integrations
+          ignore: brands

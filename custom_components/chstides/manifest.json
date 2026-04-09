@@ -1,10 +1,15 @@
 {
   "domain": "chstides",
   "name": "CHSTides",
-  "version": "0.1.0",
-  "documentation": "https://github.com/placeholder/chstides",
-  "iot_class": "cloud_polling",
+  "codeowners": [
+    "@fredericmorin"
+  ],
   "config_flow": true,
-  "codeowners": [],
-  "requirements": ["chstides==0.3.2"]
+  "documentation": "https://github.com/fredericmorin/chstides/blob/main/README.md",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/fredericmorin/chstides/issues",
+  "requirements": [
+    "chstides==0.3.2"
+  ],
+  "version": "0.1.0"
 }
