@@ -6,6 +6,8 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
+from homeassistant.core import callback
+from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import (
@@ -112,6 +114,7 @@ class PredictionCoordinator(DataUpdateCoordinator):
         self._station_id = station_id
         self._days = days
         self.forecast: list[PredictionPoint] = []
+        self._unsub_event_timer: callable | None = None
 
     @property
     def next_high(self) -> PredictionPoint | None:
@@ -138,4 +141,28 @@ class PredictionCoordinator(DataUpdateCoordinator):
             return {"forecast": self.forecast}
 
         self.forecast = points
+        self._schedule_next_event_refresh()
         return {"forecast": self.forecast}
+
+    def _schedule_next_event_refresh(self) -> None:
+        """Schedule a listener notification just after the next tide event passes."""
+        if self._unsub_event_timer is not None:
+            self._unsub_event_timer()
+            self._unsub_event_timer = None
+
+        now = datetime.now(UTC)
+        next_event = next((p for p in self.forecast if p.timestamp > now), None)
+        if next_event is None:
+            return
+
+        fire_at = next_event.timestamp + timedelta(minutes=1)
+
+        @callback
+        def _on_event_passed(_now: datetime) -> None:
+            self._unsub_event_timer = None
+            self.async_update_listeners()
+            self._schedule_next_event_refresh()
+
+        self._unsub_event_timer = async_track_point_in_utc_time(
+            self.hass, _on_event_passed, fire_at
+        )
