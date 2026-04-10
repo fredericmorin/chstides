@@ -112,8 +112,22 @@ class PredictionCoordinator(DataUpdateCoordinator):
         self._station_id = station_id
         self._days = days
         self.forecast: list[PredictionPoint] = []
-        self.next_high: PredictionPoint | None = None
-        self.next_low: PredictionPoint | None = None
+
+    @property
+    def next_high(self) -> PredictionPoint | None:
+        """Return the next future high tide, evaluated at read time."""
+        now = datetime.now(UTC)
+        return next(
+            (p for p in self.forecast if p.type == "HIGH" and p.timestamp > now), None
+        )
+
+    @property
+    def next_low(self) -> PredictionPoint | None:
+        """Return the next future low tide, evaluated at read time."""
+        now = datetime.now(UTC)
+        return next(
+            (p for p in self.forecast if p.type == "LOW" and p.timestamp > now), None
+        )
 
     async def _async_update_data(self) -> dict:
         """Fetch tide predictions, keeping stale data on failure."""
@@ -121,19 +135,7 @@ class PredictionCoordinator(DataUpdateCoordinator):
             points = await get_predictions(self._session, self._station_id, self._days)
         except CHSApiError as err:
             _LOGGER.warning("Failed to fetch predictions, keeping stale data: %s", err)
-            return {
-                "forecast": self.forecast,
-                "next_high": self.next_high,
-                "next_low": self.next_low,
-            }
+            return {"forecast": self.forecast}
 
-        now = datetime.now(UTC)
         self.forecast = points
-        future = [p for p in points if p.timestamp > now]
-        self.next_high = next((p for p in future if p.type == "HIGH"), None)
-        self.next_low = next((p for p in future if p.type == "LOW"), None)
-        return {
-            "forecast": self.forecast,
-            "next_high": self.next_high,
-            "next_low": self.next_low,
-        }
+        return {"forecast": self.forecast}
