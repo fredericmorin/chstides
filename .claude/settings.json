@@ -17,11 +17,12 @@
       "Bash(ruff *)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
+      "Bash(git checkout:*)",
       "Bash(.venv/bin/python -m pytest *)",
       "Bash(.venv/bin/python -m ruff *)",
       "Bash(python3 -m pytest *)",
       "Bash(scripts/lint)",
-      "Bash(git checkout:*)"
+      "Bash(scripts/test)"
     ],
     "deny": [
       "Bash(rm *)",

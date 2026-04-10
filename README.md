@@ -1,8 +1,8 @@
 # CHSTides
 
-Home Assistant integration for Canadian Hydrographic Service (CHS) tide data.
+Canadian Hydrographic Service (CHS) tide data integration for Home Assistant (via HACS)
 
-## Features
+## Supported Entities
 - Live water level height sensor (observed, updates every 5 min by default)
 - Tide phase sensor (Rising / Falling / High / Low)
 - Next high tide sensor (time + height)
